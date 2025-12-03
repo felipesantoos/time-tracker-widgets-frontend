@@ -201,7 +201,7 @@ export default function SessionsWidget() {
                 </div>
               ) : (
                 <div>
-                  <div className="flex-between mb-1">
+                  <div className="flex-between mb-1 gap-1">
                     <div className="flex gap-1" style={{ alignItems: 'center' }}>
                       {session.project ? (
                         <>
