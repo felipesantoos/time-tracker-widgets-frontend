@@ -31,7 +31,7 @@ export default function SessionsWidget() {
     sessionId: null,
   });
   
-  const ITEMS_PER_PAGE = 20;
+  const ITEMS_PER_PAGE = 10;
 
   useEffect(() => {
     if (message) {
@@ -185,6 +185,10 @@ export default function SessionsWidget() {
     return formatDateToLocal(dateString);
   }
 
+  async function handleRefresh() {
+    await Promise.all([loadProjects(), loadSessions()]);
+  }
+
   return (
     <div className="widget-container">
       {message && (
@@ -196,15 +200,30 @@ export default function SessionsWidget() {
         />
       )}
 
-      <h2 className="widget-title">Sessões</h2>
+      <div className="flex-between mb-1" style={{ alignItems: 'center' }}>
+        <h2 className="widget-title" style={{ fontSize: '1rem', marginBottom: 0 }}>Sessões</h2>
+        <button
+          onClick={handleRefresh}
+          title="Atualizar"
+          style={{ padding: '0.25rem', fontSize: '0.75rem', minWidth: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path>
+            <path d="M21 3v5h-5"></path>
+            <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path>
+            <path d="M3 21v-5h5"></path>
+          </svg>
+        </button>
+      </div>
 
       {/* Filters */}
-      <div className="card mb-2">
+      <div className="card mb-1" style={{ padding: '0.5rem' }}>
         <div className="mb-1">
-          <label>Projeto:</label>
+          <label style={{ fontSize: '0.8rem', display: 'block', marginBottom: '0.25rem' }}>Projeto:</label>
           <select
             value={filterProjectId}
             onChange={(e) => setFilterProjectId(e.target.value)}
+            style={{ padding: '0.3rem', fontSize: '0.8rem' }}
           >
             <option value="">Todos</option>
             {projects.map((p) => (
@@ -216,45 +235,47 @@ export default function SessionsWidget() {
         </div>
         <div className="grid grid-2">
           <div>
-            <label>De:</label>
+            <label style={{ fontSize: '0.8rem', display: 'block', marginBottom: '0.25rem' }}>De:</label>
             <input
               type="date"
               value={filterFrom}
               onChange={(e) => setFilterFrom(e.target.value)}
+              style={{ padding: '0.3rem', fontSize: '0.8rem' }}
             />
           </div>
           <div>
-            <label>Até:</label>
+            <label style={{ fontSize: '0.8rem', display: 'block', marginBottom: '0.25rem' }}>Até:</label>
             <input
               type="date"
               value={filterTo}
               onChange={(e) => setFilterTo(e.target.value)}
+              style={{ padding: '0.3rem', fontSize: '0.8rem' }}
             />
           </div>
         </div>
       </div>
 
       {loading ? (
-        <div>Carregando...</div>
+        <div style={{ fontSize: '0.85rem', padding: '0.5rem' }}>Carregando...</div>
       ) : !sessions || sessions.length === 0 ? (
-        <div className="card">
-          <p>Nenhuma sessão encontrada.</p>
+        <div className="card" style={{ padding: '0.5rem' }}>
+          <p style={{ fontSize: '0.85rem', margin: 0 }}>Nenhuma sessão encontrada.</p>
         </div>
       ) : (
         <>
           <div>
             {sessions.map((session) => (
-              <div key={session.id} className="card mb-1">
+              <div key={session.id} className="card mb-1" style={{ padding: '0.5rem' }}>
                 {editingId === session.id ? (
                   <div>
                     <div className="mb-1">
-                      <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.9rem' }}>
+                      <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.75rem' }}>
                         Projeto:
                       </label>
                       <select
                         value={editProjectId}
                         onChange={(e) => setEditProjectId(e.target.value)}
-                        style={{ width: '100%', marginBottom: '0.75rem' }}
+                        style={{ width: '100%', marginBottom: '0.5rem', padding: '0.3rem', fontSize: '0.8rem' }}
                       >
                         <option value="">Sem projeto</option>
                         {projects.map((p) => (
@@ -265,88 +286,91 @@ export default function SessionsWidget() {
                       </select>
                     </div>
                     <div className="mb-1">
-                      <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.9rem' }}>
+                      <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.75rem' }}>
                         Início:
                       </label>
                       <input
                         type="datetime-local"
                         value={editStartTime}
                         onChange={(e) => setEditStartTime(e.target.value)}
-                        style={{ width: '100%', marginBottom: '0.75rem' }}
+                        style={{ width: '100%', marginBottom: '0.5rem', padding: '0.3rem', fontSize: '0.8rem' }}
                       />
                     </div>
                     <div className="mb-1">
-                      <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.9rem' }}>
+                      <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.75rem' }}>
                         Término:
                       </label>
                       <input
                         type="datetime-local"
                         value={editEndTime}
                         onChange={(e) => setEditEndTime(e.target.value)}
-                        style={{ width: '100%', marginBottom: '0.75rem' }}
+                        style={{ width: '100%', marginBottom: '0.5rem', padding: '0.3rem', fontSize: '0.8rem' }}
                       />
                     </div>
                     <div className="mb-1">
-                      <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.9rem' }}>
+                      <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.75rem' }}>
                         Descrição:
                       </label>
                       <textarea
                         value={editDescription}
                         onChange={(e) => setEditDescription(e.target.value)}
                         placeholder="Descrição"
-                        rows={2}
-                        style={{ width: '100%', marginBottom: '0.75rem' }}
+                        rows={1}
+                        style={{ width: '100%', marginBottom: '0.5rem', padding: '0.3rem', fontSize: '0.8rem', resize: 'vertical' }}
                       />
                     </div>
                     <div className="flex gap-1">
                       <button
                         className="primary"
                         onClick={() => handleUpdate(session.id)}
+                        style={{ padding: '0.3rem 0.5rem', fontSize: '0.75rem' }}
                       >
                         Salvar
                       </button>
-                      <button onClick={cancelEdit}>Cancelar</button>
+                      <button onClick={cancelEdit} style={{ padding: '0.3rem 0.5rem', fontSize: '0.75rem' }}>Cancelar</button>
                     </div>
                   </div>
                 ) : (
                   <div>
                     <div className="flex-between mb-1 gap-1">
-                      <div className="flex gap-1" style={{ alignItems: 'center' }}>
+                      <div className="flex gap-1" style={{ alignItems: 'center', flex: 1, minWidth: 0 }}>
                         {session.project ? (
                           <>
                             <div
                               style={{
-                                width: '16px',
-                                height: '16px',
-                                borderRadius: '4px',
+                                width: '12px',
+                                height: '12px',
+                                borderRadius: '3px',
                                 backgroundColor: session.project.color,
+                                flexShrink: 0,
                               }}
                             />
-                            <strong>{session.project.name}</strong>
+                            <strong style={{ fontSize: '0.85rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{session.project.name}</strong>
                           </>
                         ) : (
-                          <strong style={{ color: '#999' }}>Sem projeto</strong>
+                          <strong style={{ color: '#999', fontSize: '0.85rem' }}>Sem projeto</strong>
                         )}
-                        <span style={{ fontSize: '0.85rem', color: '#666' }}>
+                        <span style={{ fontSize: '0.75rem', color: '#666', marginLeft: '0.25rem' }}>
                           {formatDate(session.startTime)}
                         </span>
                       </div>
-                      <div className="flex gap-1">
-                        <button onClick={() => startEdit(session)}>Editar</button>
+                      <div className="flex gap-1" style={{ flexShrink: 0 }}>
+                        <button onClick={() => startEdit(session)} style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }}>Editar</button>
                         <button
                           className="danger"
                           onClick={() => handleDeleteClick(session.id)}
+                          style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }}
                         >
                           Deletar
                         </button>
                       </div>
                     </div>
                     {session.description && (
-                      <p style={{ fontSize: '0.9rem', color: '#666', marginBottom: '0.5rem' }}>
+                      <p style={{ fontSize: '0.75rem', color: '#666', marginBottom: '0.25rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {session.description}
                       </p>
                     )}
-                    <div style={{ fontSize: '0.85rem', color: '#666' }}>
+                    <div style={{ fontSize: '0.75rem', color: '#666' }}>
                       <span>
                         {formatDuration(session.durationSeconds)} • {session.mode}
                       </span>
@@ -359,37 +383,39 @@ export default function SessionsWidget() {
           
           {/* Pagination Controls */}
           {pagination && pagination.totalPages > 1 && (
-            <div className="card mt-2" style={{ 
+            <div className="card mt-1" style={{ 
               display: 'flex', 
               justifyContent: 'space-between', 
               alignItems: 'center',
-              padding: '1rem',
+              padding: '0.5rem',
               flexWrap: 'wrap',
-              gap: '0.5rem'
+              gap: '0.4rem'
             }}>
-              <div style={{ fontSize: '0.9rem', color: '#666' }}>
-                Mostrando {((currentPage - 1) * ITEMS_PER_PAGE) + 1} - {Math.min(currentPage * ITEMS_PER_PAGE, pagination.total)} de {pagination.total} sessões
+              <div style={{ fontSize: '0.75rem', color: '#666' }}>
+                {((currentPage - 1) * ITEMS_PER_PAGE) + 1}-{Math.min(currentPage * ITEMS_PER_PAGE, pagination.total)}/{pagination.total}
               </div>
-              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+              <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
                 <button
                   onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                   disabled={currentPage === 1}
                   style={{
-                    padding: '0.5rem 1rem',
+                    padding: '0.25rem 0.5rem',
+                    fontSize: '0.75rem',
                     cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
                     opacity: currentPage === 1 ? 0.5 : 1,
                   }}
                 >
                   Anterior
                 </button>
-                <span style={{ fontSize: '0.9rem', color: '#666' }}>
-                  Página {currentPage} de {pagination.totalPages}
+                <span style={{ fontSize: '0.75rem', color: '#666' }}>
+                  {currentPage}/{pagination.totalPages}
                 </span>
                 <button
                   onClick={() => setCurrentPage(prev => Math.min(pagination.totalPages, prev + 1))}
                   disabled={currentPage === pagination.totalPages}
                   style={{
-                    padding: '0.5rem 1rem',
+                    padding: '0.25rem 0.5rem',
+                    fontSize: '0.75rem',
                     cursor: currentPage === pagination.totalPages ? 'not-allowed' : 'pointer',
                     opacity: currentPage === pagination.totalPages ? 0.5 : 1,
                   }}

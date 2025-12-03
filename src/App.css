@@ -17,49 +17,45 @@ body {
 }
 
 #root {
-  min-height: 100vh;
+  height: 100vh;
   width: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 2rem 1rem;
   box-sizing: border-box;
 }
 
 #root > * {
   width: 100%;
-  max-width: 800px;
+  height: 100%;
 }
 
 /* Widget container - otimizado para embeds no Notion */
 .widget-container {
-  padding: 1.5rem;
-  max-width: 800px;
+  padding: 0.75rem;
   width: 100%;
-  height: 600px;
-  margin: 0 auto;
+  height: 100%;
   box-sizing: border-box;
-  border: 2px solid #e0e0e0;
-  border-radius: 8px;
-  margin-bottom: 2rem;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
   overflow-y: auto;
+  display: flex;
+  flex-direction: column;
 }
 
 /* Classe para títulos principais dos widgets - mesma distância do topo */
 .widget-title {
   margin-top: 0 !important;
-  margin-bottom: 1rem !important;
+  margin-bottom: 0.5rem !important;
+  font-size: 1.1rem;
 }
 
 /* Botões */
 button {
-  padding: 0.5rem 1rem;
+  padding: 0.4rem 0.75rem;
   border: 1px solid #ddd;
   border-radius: 4px;
   background: #fff;
   color: #333;
   cursor: pointer;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   transition: all 0.2s;
 }
 
@@ -98,10 +94,10 @@ button.danger:hover {
 input,
 textarea,
 select {
-  padding: 0.5rem;
+  padding: 0.4rem;
   border: 1px solid #ddd;
   border-radius: 4px;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   width: 100%;
 }
 
@@ -116,31 +112,31 @@ select:focus {
 .card {
   background: #fff;
   border: 1px solid #e0e0e0;
-  border-radius: 8px;
-  padding: 1rem;
-  margin-bottom: 1rem;
+  border-radius: 6px;
+  padding: 0.75rem;
+  margin-bottom: 0.5rem;
 }
 
 /* Grid */
 .grid {
   display: grid;
-  gap: 1rem;
+  gap: 0.5rem;
 }
 
 .grid-2 {
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
 }
 
 /* Utilitários */
-.mt-1 { margin-top: 0.5rem; }
-.mt-2 { margin-top: 1rem; }
-.mb-1 { margin-bottom: 0.5rem; }
-.mb-2 { margin-bottom: 1rem; }
+.mt-1 { margin-top: 0.4rem; }
+.mt-2 { margin-top: 0.75rem; }
+.mb-1 { margin-bottom: 0.4rem; }
+.mb-2 { margin-bottom: 0.75rem; }
 .text-center { text-align: center; }
 .flex { display: flex; }
 .flex-between { display: flex; justify-content: space-between; align-items: center; }
-.gap-1 { gap: 0.5rem; }
-.gap-2 { gap: 1rem; }
+.gap-1 { gap: 0.4rem; }
+.gap-2 { gap: 0.75rem; }
 
 /* Toast animation */
 @keyframes slideDown {

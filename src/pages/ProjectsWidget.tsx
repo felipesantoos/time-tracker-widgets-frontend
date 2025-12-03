@@ -115,6 +115,10 @@ export default function ProjectsWidget() {
     setConfirmDialog({ isOpen: false, projectId: null });
   }
 
+  async function handleRefresh() {
+    await loadProjects();
+  }
+
   if (loading) {
     return <div className="widget-container">Carregando...</div>;
   }
@@ -130,41 +134,57 @@ export default function ProjectsWidget() {
         />
       )}
 
-      <div className="flex-between mb-2">
-        <h2 className="widget-title">Projetos</h2>
-        <button
-          className="primary"
-          onClick={() => setShowForm(!showForm)}
-        >
-          {showForm ? 'Cancelar' : '+ Novo Projeto'}
-        </button>
+      <div className="flex-between mb-1">
+        <h2 className="widget-title" style={{ fontSize: '1rem', marginBottom: 0 }}>Projetos</h2>
+        <div className="flex gap-1">
+          <button
+            onClick={handleRefresh}
+            title="Atualizar"
+            style={{ padding: '0.25rem', fontSize: '0.75rem', minWidth: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path>
+              <path d="M21 3v5h-5"></path>
+              <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path>
+              <path d="M3 21v-5h5"></path>
+            </svg>
+          </button>
+          <button
+            className="primary"
+            onClick={() => setShowForm(!showForm)}
+            style={{ padding: '0.3rem 0.5rem', fontSize: '0.75rem' }}
+          >
+            {showForm ? 'Cancelar' : '+ Novo'}
+          </button>
+        </div>
       </div>
 
       {showForm && (
-        <div className="card mb-2">
-          <h3>Criar Projeto</h3>
+        <div className="card mb-1" style={{ padding: '0.5rem' }}>
+          <h3 style={{ fontSize: '0.9rem', marginBottom: '0.5rem', marginTop: 0 }}>Criar Projeto</h3>
           <div className="mb-1">
-            <label>Nome:</label>
+            <label style={{ fontSize: '0.8rem', display: 'block', marginBottom: '0.25rem' }}>Nome:</label>
             <input
               type="text"
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
               placeholder="Nome do projeto"
+              style={{ padding: '0.3rem', fontSize: '0.8rem' }}
             />
           </div>
           <div className="mb-1">
-            <label>Cor:</label>
+            <label style={{ fontSize: '0.8rem', display: 'block', marginBottom: '0.25rem' }}>Cor:</label>
             <div className="flex gap-1" style={{ alignItems: 'center' }}>
               <input
                 type="color"
                 value={newColor}
                 onChange={(e) => setNewColor(e.target.value)}
-                style={{ width: '50px', height: '40px', cursor: 'pointer' }}
+                style={{ width: '40px', height: '30px', cursor: 'pointer' }}
               />
-              <span style={{ fontSize: '0.9rem', color: '#666' }}>{newColor}</span>
+              <span style={{ fontSize: '0.75rem', color: '#666' }}>{newColor}</span>
             </div>
           </div>
-          <button className="primary" onClick={handleCreate}>
+          <button className="primary" onClick={handleCreate} style={{ padding: '0.3rem 0.5rem', fontSize: '0.75rem' }}>
             Criar
           </button>
         </div>
@@ -172,12 +192,12 @@ export default function ProjectsWidget() {
 
       <div>
         {!projects || projects.length === 0 ? (
-          <div className="card">
-            <p>Nenhum projeto criado ainda.</p>
+          <div className="card" style={{ padding: '0.5rem' }}>
+            <p style={{ fontSize: '0.85rem', margin: 0 }}>Nenhum projeto criado ainda.</p>
           </div>
         ) : (
           projects.map((project) => (
-            <div key={project.id} className="card mb-1">
+            <div key={project.id} className="card mb-1" style={{ padding: '0.5rem' }}>
               {editingId === project.id ? (
                 <div>
                   <div className="mb-1">
@@ -185,48 +205,52 @@ export default function ProjectsWidget() {
                       type="text"
                       value={editName}
                       onChange={(e) => setEditName(e.target.value)}
+                      style={{ padding: '0.3rem', fontSize: '0.8rem' }}
                     />
                   </div>
                   <div className="mb-1">
-                    <label>Cor:</label>
+                    <label style={{ fontSize: '0.8rem', display: 'block', marginBottom: '0.25rem' }}>Cor:</label>
                     <div className="flex gap-1" style={{ alignItems: 'center' }}>
                       <input
                         type="color"
                         value={editColor}
                         onChange={(e) => setEditColor(e.target.value)}
-                        style={{ width: '50px', height: '40px', cursor: 'pointer' }}
+                        style={{ width: '40px', height: '30px', cursor: 'pointer' }}
                       />
-                      <span style={{ fontSize: '0.9rem', color: '#666' }}>{editColor}</span>
+                      <span style={{ fontSize: '0.75rem', color: '#666' }}>{editColor}</span>
                     </div>
                   </div>
                   <div className="flex gap-1">
                     <button
                       className="primary"
                       onClick={() => handleUpdate(project.id)}
+                      style={{ padding: '0.3rem 0.5rem', fontSize: '0.75rem' }}
                     >
                       Salvar
                     </button>
-                    <button onClick={cancelEdit}>Cancelar</button>
+                    <button onClick={cancelEdit} style={{ padding: '0.3rem 0.5rem', fontSize: '0.75rem' }}>Cancelar</button>
                   </div>
                 </div>
               ) : (
                 <div className="flex-between gap-1">
-                  <div className="flex gap-1" style={{ alignItems: 'center' }}>
+                  <div className="flex gap-1" style={{ alignItems: 'center', flex: 1, minWidth: 0 }}>
                     <div
                       style={{
-                        width: '20px',
-                        height: '20px',
-                        borderRadius: '4px',
+                        width: '14px',
+                        height: '14px',
+                        borderRadius: '3px',
                         backgroundColor: project.color,
+                        flexShrink: 0,
                       }}
                     />
-                    <span>{project.name}</span>
+                    <span style={{ fontSize: '0.85rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{project.name}</span>
                   </div>
-                  <div className="flex gap-1">
-                    <button onClick={() => startEdit(project)}>Editar</button>
+                  <div className="flex gap-1" style={{ flexShrink: 0 }}>
+                    <button onClick={() => startEdit(project)} style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }}>Editar</button>
                     <button
                       className="danger"
                       onClick={() => handleDeleteClick(project.id)}
+                      style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }}
                     >
                       Deletar
                     </button>
