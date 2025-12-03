@@ -287,7 +287,7 @@ export default function RowChartWidget() {
                     <LabelList
                       dataKey="hours"
                       position="right"
-                      formatter={(value: number) => `${value.toFixed(1)}h`}
+                      formatter={(value: any) => typeof value === 'number' ? `${value.toFixed(1)}h` : String(value)}
                       style={{ fill: '#333', fontSize: '0.75rem', fontWeight: 'bold' }}
                     />
                   </Bar>
