@@ -11,10 +11,9 @@ type TimerMode = 'stopwatch' | 'timer' | 'pomodoro';
 type PomodoroPhase = 'work' | 'shortBreak' | 'longBreak';
 
 export default function TimerWidget() {
-  const { activeSession } = useActiveSession();
+  const { activeSession, elapsedSeconds: contextElapsedSeconds } = useActiveSession();
   const [mode, setMode] = useState<TimerMode>('stopwatch');
   const [isRunning, setIsRunning] = useState(false);
-  const [seconds, setSeconds] = useState(0);
   const [targetSeconds, setTargetSeconds] = useState(0);
   const [startTime, setStartTime] = useState<Date | null>(null);
   const [selectedProjectId, setSelectedProjectId] = useState<string>('');
@@ -33,7 +32,8 @@ export default function TimerWidget() {
     pendingMode: null,
   });
   
-  const intervalRef = useRef<number | null>(null);
+  // Usar elapsedSeconds do contexto quando há sessão ativa, senão usar 0
+  const seconds = activeSession?.active ? contextElapsedSeconds : 0;
   
   // Auto-hide message after 3 seconds
   useEffect(() => {
@@ -53,30 +53,19 @@ export default function TimerWidget() {
       return;
     }
 
-    if (!activeSession) {
+    if (!activeSession || !activeSession.active) {
       // Se não há sessão ativa mas o timer está rodando localmente, parar
       if (isRunning && startTime) {
         setIsRunning(false);
-        
-        // Limpar o interval imediatamente
-        if (intervalRef.current) {
-          clearInterval(intervalRef.current);
-          intervalRef.current = null;
-        }
-        
-        // Resetar estado
-        setSeconds(0);
         setStartTime(null);
       }
       return;
     }
 
     // Se há uma sessão ativa, sincronizar o estado
-    const now = new Date();
     const sessionStartTime = new Date(activeSession.startTime!);
-    const elapsedSeconds = Math.floor((now.getTime() - sessionStartTime.getTime()) / 1000);
 
-    // Só atualizar se o startTime local for diferente ou se não estiver rodando
+    // Só atualizar se o startTime local for diferente
     const localStartTimeStr = startTime?.toISOString();
     const sessionStartTimeStr = sessionStartTime.toISOString();
     
@@ -84,7 +73,6 @@ export default function TimerWidget() {
     if ((!startTime || localStartTimeStr !== sessionStartTimeStr) && !isStoppingRef.current) {
       setMode(activeSession.mode || 'stopwatch');
       setStartTime(sessionStartTime);
-      setSeconds(Math.max(0, elapsedSeconds));
       setIsRunning(true);
 
       if (activeSession.projectId) {
@@ -109,8 +97,7 @@ export default function TimerWidget() {
         }
       }
     }
-    // Nota: Não precisamos sincronizar os segundos aqui porque o timer já incrementa automaticamente
-    // quando isRunning é true. A sincronização inicial já foi feita acima.
+    // Nota: Os segundos agora vêm diretamente do contexto (elapsedSeconds), não precisamos calcular ou incrementar localmente
   }, [activeSession, isRunning, startTime]);
 
   // Carregar projetos, settings e sessão ativa
@@ -131,13 +118,10 @@ export default function TimerWidget() {
         
         // Restaurar sessão ativa se existir
         if (activeSession) {
-          const now = new Date();
           const startTime = new Date(activeSession.startTime);
-          const elapsedSeconds = Math.floor((now.getTime() - startTime.getTime()) / 1000);
           
           setMode(activeSession.mode);
           setStartTime(startTime);
-          setSeconds(Math.max(0, elapsedSeconds));
           setIsRunning(true);
           
           if (activeSession.projectId) {
@@ -174,43 +158,27 @@ export default function TimerWidget() {
     loadData();
   }, []);
 
-  // Timer logic
+  // Verificar se timer/pomodoro atingiu o alvo (usando elapsedSeconds do contexto)
   useEffect(() => {
-    if (isRunning) {
-      intervalRef.current = window.setInterval(() => {
-        setSeconds((prev) => {
-          const newSeconds = prev + 1;
-          
-          // Auto-stop para timer e pomodoro
-          if (mode === 'timer' && newSeconds >= targetSeconds) {
-            handleStop();
-            return targetSeconds;
-          }
-          
-          if (mode === 'pomodoro') {
-            const currentTarget = getPomodoroTarget();
-            if (newSeconds >= currentTarget) {
-              handlePomodoroComplete();
-              return currentTarget;
-            }
-          }
-          
-          return newSeconds;
-        });
-      }, 1000);
-    } else {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
+    if (!isRunning || !activeSession?.active) {
+      return;
     }
 
-    return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
+    // Auto-stop para timer e pomodoro baseado no elapsedSeconds do contexto
+    if (mode === 'timer' && seconds >= targetSeconds && targetSeconds > 0) {
+      handleStop();
+      return;
+    }
+    
+    if (mode === 'pomodoro') {
+      const currentTarget = getPomodoroTarget();
+      if (seconds >= currentTarget && currentTarget > 0) {
+        handlePomodoroComplete();
+        return;
       }
-    };
-  }, [isRunning, mode, targetSeconds]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [seconds, mode, targetSeconds, isRunning, activeSession?.active]);
 
   // Atualizar sessão ativa quando descrição ou projeto mudarem durante execução
   useEffect(() => {
@@ -287,14 +255,6 @@ export default function TimerWidget() {
     setStartTime(now);
     setIsRunning(true);
     
-    if (mode === 'stopwatch') {
-      setSeconds(0);
-    } else if (mode === 'timer') {
-      setSeconds(0);
-    } else if (mode === 'pomodoro') {
-      setSeconds(0);
-    }
-    
     // Salvar sessão ativa no backend
     try {
       const activeSessionData: CreateActiveSessionData = {
@@ -350,15 +310,6 @@ export default function TimerWidget() {
     
     // Parar o timer primeiro
     setIsRunning(false);
-    
-    // Limpar o interval imediatamente
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
-    }
-    
-    // Resetar estado imediatamente para evitar que o useEffect reinicie
-    setSeconds(0);
     setStartTime(null);
     
     const endTime = new Date();
@@ -556,7 +507,6 @@ export default function TimerWidget() {
           const nextPhase = newCycle % pomodoroSettings.longBreakInterval === 0 ? 'longBreak' : 'shortBreak';
           setStartTime(now);
           setIsRunning(true);
-          setSeconds(0);
           
           // Salvar sessão ativa para a pausa
           try {
@@ -653,13 +603,10 @@ export default function TimerWidget() {
       setPomodoroSettings(settings);
       
       if (activeSession) {
-        const now = new Date();
         const startTime = new Date(activeSession.startTime);
-        const elapsedSeconds = Math.floor((now.getTime() - startTime.getTime()) / 1000);
         
         setMode(activeSession.mode);
         setStartTime(startTime);
-        setSeconds(Math.max(0, elapsedSeconds));
         setIsRunning(true);
         
         if (activeSession.projectId) {
