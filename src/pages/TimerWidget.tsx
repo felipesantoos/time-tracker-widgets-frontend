@@ -45,6 +45,8 @@ export default function TimerWidget() {
 
   // Flag para evitar sincronização durante o processo de parar
   const isStoppingRef = useRef(false);
+  // Ref para rastrear se havia uma sessão ativa anteriormente
+  const hadActiveSessionRef = useRef(false);
 
   // Sincronizar com a sessão ativa do contexto (SSE)
   useEffect(() => {
@@ -54,13 +56,24 @@ export default function TimerWidget() {
     }
 
     if (!activeSession || !activeSession.active) {
-      // Se não há sessão ativa mas o timer está rodando localmente, parar
-      if (isRunning && startTime) {
+      // Se havia uma sessão ativa antes e agora não há mais, resetar campos
+      if (hadActiveSessionRef.current) {
+        setIsRunning(false);
+        setStartTime(null);
+        // Resetar descrição e projeto quando a sessão ativa é removida (ex: parado via ActiveTimerBar)
+        setDescription('');
+        setSelectedProjectId('');
+        hadActiveSessionRef.current = false;
+      } else if (isRunning && startTime) {
+        // Se não há sessão ativa mas o timer está rodando localmente, parar
         setIsRunning(false);
         setStartTime(null);
       }
       return;
     }
+
+    // Marcar que há uma sessão ativa
+    hadActiveSessionRef.current = true;
 
     // Se há uma sessão ativa, sincronizar o estado
     const sessionStartTime = new Date(activeSession.startTime!);
@@ -324,8 +337,9 @@ export default function TimerWidget() {
       } catch (err) {
         // Ignorar erro
       }
-      // Resetar descrição também
+      // Resetar descrição e projeto
       setDescription('');
+      setSelectedProjectId('');
       isStoppingRef.current = false;
       return;
     }
@@ -383,6 +397,9 @@ export default function TimerWidget() {
       if (result && result.data) {
         console.log('Sessão criada com sucesso:', result.data.id);
         setMessage({ text: 'Sessão salva com sucesso!', type: 'success' });
+        // Resetar descrição e projeto após salvar com sucesso
+        setDescription('');
+        setSelectedProjectId('');
       } else {
         console.log('Nenhuma sessão ativa encontrada, criando manualmente...');
         // Se não havia sessão ativa, criar manualmente
@@ -408,16 +425,15 @@ export default function TimerWidget() {
         const createdSession = await sessionsApi.create(sessionData);
         console.log('Sessão criada manualmente:', createdSession);
         setMessage({ text: 'Sessão salva com sucesso!', type: 'success' });
+        // Resetar descrição e projeto após salvar com sucesso
+        setDescription('');
+        setSelectedProjectId('');
       }
-      
-      // Resetar descrição
-      setDescription('');
     } catch (err) {
       console.error('Erro ao salvar sessão:', err);
       const errorMessage = err instanceof Error ? err.message : 'Erro ao salvar sessão';
       setMessage({ text: errorMessage, type: 'error' });
-      // Resetar descrição mesmo em caso de erro
-      setDescription('');
+      // Não resetar em caso de erro - manter valores para o usuário tentar novamente
     } finally {
       // Permitir sincronização novamente após um pequeno delay
       setTimeout(() => {
