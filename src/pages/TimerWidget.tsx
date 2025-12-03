@@ -532,7 +532,6 @@ export default function TimerWidget() {
       setPomodoroPhase('work');
       setTargetSeconds(pomodoroSettings?.workMinutes || 25 * 60);
       setStartTime(null);
-      setSeconds(0);
       
       // Remover sessão ativa se existir
       try {
@@ -561,7 +560,6 @@ export default function TimerWidget() {
     }
     
     setMode(newMode);
-    setSeconds(0);
     setPomodoroPhase('work');
     setPomodoroCycle(0);
     
