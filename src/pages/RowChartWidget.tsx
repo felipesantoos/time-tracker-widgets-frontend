@@ -4,7 +4,7 @@ import { reportsApi, type ReportSummary, type PomodoroReport } from '../api/repo
 import { useActiveSession } from '../contexts/ActiveSessionContext';
 import '../App.css';
 
-export default function ColumnChartWidget() {
+export default function RowChartWidget() {
   const { activeSession } = useActiveSession();
   const [summary, setSummary] = useState<ReportSummary | null>(null);
   const [pomodoroReport, setPomodoroReport] = useState<PomodoroReport | null>(null);
@@ -175,7 +175,7 @@ export default function ColumnChartWidget() {
   return (
     <div className="widget-container with-timer-space">
       <div className="flex mb-1" style={{ alignItems: 'center', gap: '0.5rem' }}>
-        <h2 className="widget-title" style={{ fontSize: '1rem', marginBottom: 0 }}>Gráfico de Colunas</h2>
+        <h2 className="widget-title" style={{ fontSize: '1rem', marginBottom: 0 }}>Gráfico de Barras</h2>
         <button
           onClick={handleRefresh}
           title="Atualizar"
@@ -234,7 +234,7 @@ export default function ColumnChartWidget() {
       {summary && (
         <>
           {/* Summary cards */}
-          <div className="grid grid-3 mb-1">
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '0.5rem', marginBottom: '0.5rem' }}>
             <div className="card" style={{ padding: '0.5rem' }}>
               <h3 style={{ fontSize: '0.85rem', marginBottom: '0.25rem', marginTop: 0 }}>Total de Tempo</h3>
               <div style={{ fontSize: '1.5rem', fontWeight: 'bold', lineHeight: '1.2' }}>
@@ -260,35 +260,34 @@ export default function ColumnChartWidget() {
             )}
           </div>
 
-          {/* Tempo por Projeto - Gráfico de Colunas */}
+          {/* Tempo por Projeto - Gráfico de Barras Horizontais */}
           <div className="card mb-1" style={{ padding: '0.5rem' }}>
             <h3 style={{ fontSize: '0.85rem', marginBottom: '0.5rem', marginTop: 0 }}>Tempo por Projeto</h3>
             {timeByProjectData.length === 0 ? (
               <p style={{ fontSize: '0.75rem', margin: 0 }}>Nenhum dado no período selecionado.</p>
             ) : (
-              <ResponsiveContainer width="100%" height={250}>
-                <BarChart data={timeByProjectData} margin={{ top: 30, right: 5, left: 5, bottom: 5 }}>
-                  <XAxis
-                    dataKey="name"
-                    angle={-45}
-                    textAnchor="end"
-                    height={80}
-                    interval={0}
-                    tick={{ fontSize: 10 }}
-                  />
+              <ResponsiveContainer width="100%" height={Math.max(250, timeByProjectData.length * 40)}>
+                <BarChart
+                  data={timeByProjectData}
+                  layout="vertical"
+                  margin={{ top: 5, right: 50, left: 100, bottom: 5 }}
+                >
+                  <XAxis type="number" label={{ value: 'Horas', position: 'insideBottom', offset: -5, style: { fontSize: 12 } }} tick={{ fontSize: 10 }} />
                   <YAxis
-                    label={{ value: 'Horas', angle: -90, position: 'insideLeft', style: { fontSize: 12 } }}
+                    type="category"
+                    dataKey="name"
+                    width={90}
                     tick={{ fontSize: 10 }}
                   />
                   <Tooltip content={<TimeTooltip />} />
-                  <Bar dataKey="hours" radius={[4, 4, 0, 0]}>
+                  <Bar dataKey="hours" radius={[0, 4, 4, 0]}>
                     {timeByProjectData.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
                     <LabelList
                       dataKey="hours"
-                      position="top"
-                      formatter={(value: any) => `${Number(value).toFixed(1)}h`}
+                      position="right"
+                      formatter={(value: number) => `${value.toFixed(1)}h`}
                       style={{ fill: '#333', fontSize: '0.75rem', fontWeight: 'bold' }}
                     />
                   </Bar>
@@ -299,7 +298,7 @@ export default function ColumnChartWidget() {
         </>
       )}
 
-      {/* Pomodoros por Projeto - Gráfico de Colunas */}
+      {/* Pomodoros por Projeto - Gráfico de Barras Horizontais */}
       {pomodoroReport && pomodoroReport.byProject && pomodoroReport.byProject.length > 0 && (
         <div className="card" style={{ padding: '0.5rem' }}>
           <h3 style={{ fontSize: '0.85rem', marginBottom: '0.5rem', marginTop: 0 }}>
@@ -308,25 +307,29 @@ export default function ColumnChartWidget() {
           <div style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '0.5rem', lineHeight: '1.2' }}>
             {pomodoroReport.total}
           </div>
-          <ResponsiveContainer width="100%" height={250}>
-            <BarChart data={pomodoroByProjectData} margin={{ top: 30, right: 5, left: 5, bottom: 5 }}>
-              <XAxis
-                dataKey="name"
-                angle={-45}
-                textAnchor="end"
-                height={80}
-                interval={0}
-                tick={{ fontSize: 10 }}
-              />
+          <ResponsiveContainer width="100%" height={Math.max(250, pomodoroByProjectData.length * 40)}>
+            <BarChart
+              data={pomodoroByProjectData}
+              layout="vertical"
+              margin={{ top: 5, right: 50, left: 100, bottom: 5 }}
+            >
+              <XAxis type="number" label={{ value: 'Pomodoros', position: 'insideBottom', offset: -5, style: { fontSize: 12 } }} tick={{ fontSize: 10 }} />
               <YAxis
-                label={{ value: 'Pomodoros', angle: -90, position: 'insideLeft', style: { fontSize: 12 } }}
+                type="category"
+                dataKey="name"
+                width={90}
                 tick={{ fontSize: 10 }}
               />
               <Tooltip content={<PomodoroTooltip />} />
-              <Bar dataKey="count" radius={[4, 4, 0, 0]}>
+              <Bar dataKey="count" radius={[0, 4, 4, 0]}>
                 {pomodoroByProjectData.map((entry, index) => (
                   <Cell key={`cell-${index}`} fill={entry.color} />
                 ))}
+                <LabelList
+                  dataKey="count"
+                  position="right"
+                  style={{ fill: '#333', fontSize: '0.75rem', fontWeight: 'bold' }}
+                />
               </Bar>
             </BarChart>
           </ResponsiveContainer>

@@ -7,6 +7,7 @@ import ProjectsWidget from './pages/ProjectsWidget';
 import SessionsWidget from './pages/SessionsWidget';
 import ReportsWidget from './pages/ReportsWidget';
 import ColumnChartWidget from './pages/ColumnChartWidget';
+import RowChartWidget from './pages/RowChartWidget';
 import SettingsWidget from './pages/SettingsWidget';
 import HomePage from './pages/HomePage';
 import './App.css';
@@ -77,6 +78,14 @@ function App() {
               element={
                 <AuthGuard>
                   <ColumnChartWidget />
+                </AuthGuard>
+              }
+            />
+            <Route
+              path="/row-chart"
+              element={
+                <AuthGuard>
+                  <RowChartWidget />
                 </AuthGuard>
               }
             />

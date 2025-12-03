@@ -8,6 +8,7 @@ const WIDGETS = [
   { path: '/sessions', name: 'Sessões', icon: '📊' },
   { path: '/reports', name: 'Relatórios', icon: '📈' },
   { path: '/column-chart', name: 'Gráfico de Colunas', icon: '📊' },
+  { path: '/row-chart', name: 'Gráfico de Barras', icon: '📊' },
   { path: '/settings', name: 'Configurações', icon: '⚙️' },
 ];
 
@@ -155,7 +156,7 @@ export default function HomePage() {
         </div>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '0.5rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.5rem' }}>
         {WIDGETS.map((widget) => (
           <div key={widget.path} className="card" style={{ padding: '0.5rem' }}>
             <div className="flex-between gap-1" style={{ alignItems: 'center' }}>
