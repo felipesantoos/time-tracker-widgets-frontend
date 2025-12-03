@@ -43,8 +43,16 @@ export default function TimerWidget() {
     }
   }, [message]);
 
+  // Flag para evitar sincronização durante o processo de parar
+  const isStoppingRef = useRef(false);
+
   // Sincronizar com a sessão ativa do contexto (SSE)
   useEffect(() => {
+    // Ignorar sincronização se estamos no processo de parar
+    if (isStoppingRef.current) {
+      return;
+    }
+
     if (!activeSession) {
       // Se não há sessão ativa mas o timer está rodando localmente, parar
       if (isRunning && startTime) {
@@ -72,7 +80,8 @@ export default function TimerWidget() {
     const localStartTimeStr = startTime?.toISOString();
     const sessionStartTimeStr = sessionStartTime.toISOString();
     
-    if (!startTime || localStartTimeStr !== sessionStartTimeStr || !isRunning) {
+    // Não reiniciar se estamos parando ou se já está rodando com o mesmo startTime
+    if ((!startTime || localStartTimeStr !== sessionStartTimeStr) && !isStoppingRef.current) {
       setMode(activeSession.mode || 'stopwatch');
       setStartTime(sessionStartTime);
       setSeconds(Math.max(0, elapsedSeconds));
@@ -102,7 +111,7 @@ export default function TimerWidget() {
     }
     // Nota: Não precisamos sincronizar os segundos aqui porque o timer já incrementa automaticamente
     // quando isRunning é true. A sincronização inicial já foi feita acima.
-  }, [activeSession]);
+  }, [activeSession, isRunning, startTime]);
 
   // Carregar projetos, settings e sessão ativa
   useEffect(() => {
@@ -327,6 +336,18 @@ export default function TimerWidget() {
       return;
     }
     
+    // Marcar que estamos parando para evitar sincronização
+    isStoppingRef.current = true;
+    
+    // Salvar startTime antes de resetar
+    const savedStartTime = startTime;
+    const savedMode = mode;
+    const savedProjectId = selectedProjectId;
+    const savedDescription = description;
+    const savedTargetSeconds = targetSeconds;
+    const savedPomodoroPhase = pomodoroPhase;
+    const savedPomodoroCycle = pomodoroCycle;
+    
     // Parar o timer primeiro
     setIsRunning(false);
     
@@ -336,8 +357,12 @@ export default function TimerWidget() {
       intervalRef.current = null;
     }
     
+    // Resetar estado imediatamente para evitar que o useEffect reinicie
+    setSeconds(0);
+    setStartTime(null);
+    
     const endTime = new Date();
-    const duration = Math.floor((endTime.getTime() - startTime.getTime()) / 1000);
+    const duration = Math.floor((endTime.getTime() - savedStartTime.getTime()) / 1000);
     
     if (duration <= 0) {
       console.warn('Duração inválida:', duration);
@@ -348,10 +373,9 @@ export default function TimerWidget() {
       } catch (err) {
         // Ignorar erro
       }
-      // Resetar mesmo se a duração for inválida
-      setSeconds(0);
-      setStartTime(null);
+      // Resetar descrição também
       setDescription('');
+      isStoppingRef.current = false;
       return;
     }
     
@@ -360,26 +384,38 @@ export default function TimerWidget() {
       // Isso garante que o projeto e descrição corretos sejam salvos
       try {
         const activeSessionData: CreateActiveSessionData = {
-          startTime: startTime.toISOString(),
-          mode,
+          startTime: savedStartTime.toISOString(),
+          mode: savedMode,
         };
         
-        if (selectedProjectId && selectedProjectId.trim() !== '') {
-          activeSessionData.projectId = selectedProjectId.trim();
+        if (savedProjectId && savedProjectId.trim() !== '') {
+          activeSessionData.projectId = savedProjectId.trim();
         } else {
           activeSessionData.projectId = null;
         }
         
-        const trimmedDescription = description?.trim();
+        const trimmedDescription = savedDescription?.trim();
         activeSessionData.description = trimmedDescription || undefined;
         
-        if (mode === 'timer' || mode === 'pomodoro') {
-          activeSessionData.targetSeconds = mode === 'pomodoro' ? getPomodoroTarget() : targetSeconds;
+        if (savedMode === 'timer' || savedMode === 'pomodoro') {
+          if (savedMode === 'pomodoro' && pomodoroSettings) {
+            let pomodoroTarget = 0;
+            if (savedPomodoroPhase === 'work') {
+              pomodoroTarget = pomodoroSettings.workMinutes * 60;
+            } else if (savedPomodoroPhase === 'shortBreak') {
+              pomodoroTarget = pomodoroSettings.shortBreakMinutes * 60;
+            } else {
+              pomodoroTarget = pomodoroSettings.longBreakMinutes * 60;
+            }
+            activeSessionData.targetSeconds = pomodoroTarget;
+          } else {
+            activeSessionData.targetSeconds = savedTargetSeconds;
+          }
         }
         
-        if (mode === 'pomodoro') {
-          activeSessionData.pomodoroPhase = pomodoroPhase;
-          activeSessionData.pomodoroCycle = pomodoroCycle;
+        if (savedMode === 'pomodoro') {
+          activeSessionData.pomodoroPhase = savedPomodoroPhase;
+          activeSessionData.pomodoroCycle = savedPomodoroCycle;
         }
         
         console.log('Atualizando sessão ativa antes de finalizar com projeto:', activeSessionData.projectId);
@@ -400,19 +436,19 @@ export default function TimerWidget() {
         console.log('Nenhuma sessão ativa encontrada, criando manualmente...');
         // Se não havia sessão ativa, criar manualmente
         const sessionData: CreateSessionData = {
-          startTime: startTime.toISOString(),
+          startTime: savedStartTime.toISOString(),
           endTime: endTime.toISOString(),
           durationSeconds: duration,
-          mode,
+          mode: savedMode,
         };
         
-        if (selectedProjectId && selectedProjectId.trim() !== '') {
-          sessionData.projectId = selectedProjectId.trim();
+        if (savedProjectId && savedProjectId.trim() !== '') {
+          sessionData.projectId = savedProjectId.trim();
         } else {
           sessionData.projectId = null;
         }
         
-        const trimmedDescription = description?.trim();
+        const trimmedDescription = savedDescription?.trim();
         if (trimmedDescription) {
           sessionData.description = trimmedDescription;
         }
@@ -423,18 +459,19 @@ export default function TimerWidget() {
         setMessage({ text: 'Sessão salva com sucesso!', type: 'success' });
       }
       
-      // Resetar estado
-      setSeconds(0);
-      setStartTime(null);
+      // Resetar descrição
       setDescription('');
     } catch (err) {
       console.error('Erro ao salvar sessão:', err);
       const errorMessage = err instanceof Error ? err.message : 'Erro ao salvar sessão';
       setMessage({ text: errorMessage, type: 'error' });
-      // Resetar mesmo em caso de erro
-      setSeconds(0);
-      setStartTime(null);
+      // Resetar descrição mesmo em caso de erro
       setDescription('');
+    } finally {
+      // Permitir sincronização novamente após um pequeno delay
+      setTimeout(() => {
+        isStoppingRef.current = false;
+      }, 1000);
     }
   }
 
