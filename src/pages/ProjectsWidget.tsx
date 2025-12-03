@@ -131,7 +131,7 @@ export default function ProjectsWidget() {
       )}
 
       <div className="flex-between mb-2">
-        <h2>Projetos</h2>
+        <h2 className="widget-title">Projetos</h2>
         <button
           className="primary"
           onClick={() => setShowForm(!showForm)}

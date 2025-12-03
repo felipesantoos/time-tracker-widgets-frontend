@@ -331,7 +331,7 @@ export default function TimerWidget() {
         />
       )}
 
-      <h2 style={{ textAlign: 'center', marginBottom: '16px' }}>Time Tracker</h2>
+      <h2 className="widget-title" style={{ textAlign: 'center' }}>Time Tracker</h2>
       
       {/* Mode selector */}
       <div className="flex gap-1 mb-2" style={{ width: '100%' }}>

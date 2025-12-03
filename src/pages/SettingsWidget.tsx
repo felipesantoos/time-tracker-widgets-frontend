@@ -79,7 +79,7 @@ export default function SettingsWidget() {
         />
       )}
 
-      <h2>Configurações do Pomodoro</h2>
+      <h2 className="widget-title">Configurações do Pomodoro</h2>
 
       <div className="card">
         <div className="mb-1">

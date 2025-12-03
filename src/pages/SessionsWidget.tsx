@@ -202,7 +202,7 @@ export default function SessionsWidget() {
         />
       )}
 
-      <h2>Sessões</h2>
+      <h2 className="widget-title">Sessões</h2>
 
       {/* Filters */}
       <div className="card mb-2">

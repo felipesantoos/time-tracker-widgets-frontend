@@ -86,7 +86,7 @@ export default function ReportsWidget() {
   return (
     <div className="widget-container">
       <div className="flex-between mb-2 gap-1">
-        <h2>Relatórios</h2>
+        <h2 className="widget-title">Relatórios</h2>
         <div className="flex gap-1">
           <button
             onClick={() => setPeriod('today')}
