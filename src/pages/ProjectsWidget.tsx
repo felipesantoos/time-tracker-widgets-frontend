@@ -176,7 +176,7 @@ export default function ProjectsWidget() {
                   </div>
                 </div>
               ) : (
-                <div className="flex-between">
+                <div className="flex-between gap-1">
                   <div className="flex gap-1" style={{ alignItems: 'center' }}>
                     <div
                       style={{

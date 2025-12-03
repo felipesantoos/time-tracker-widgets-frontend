@@ -287,7 +287,7 @@ export default function TimerWidget() {
 
   return (
     <div className="widget-container">
-      <h2>Timer / Stopwatch / Pomodoro</h2>
+      <h2 style={{ textAlign: 'center', marginBottom: '16px' }}>Time Tracker</h2>
       
       {/* Mode selector */}
       <div className="flex gap-1 mb-2" style={{ width: '100%' }}>
@@ -351,18 +351,18 @@ export default function TimerWidget() {
       {/* Controls */}
       <div className="flex gap-1 mb-2">
         {!isRunning ? (
-          <button className="primary" onClick={handleStart}>
+          <button className="primary" onClick={handleStart} style={{ flex: 1, width: '100%' }}>
             Iniciar
           </button>
         ) : isPaused ? (
-          <button className="primary" onClick={handleResume}>
+          <button className="primary" onClick={handleResume} style={{ flex: 1 }}>
             Retomar
           </button>
         ) : (
-          <button onClick={handlePause}>Pausar</button>
+          <button onClick={handlePause} style={{ flex: 1 }}>Pausar</button>
         )}
         {isRunning && (
-          <button className="danger" onClick={handleStop}>
+          <button className="danger" onClick={handleStop} style={{ flex: 1 }}>
             Parar
           </button>
         )}
