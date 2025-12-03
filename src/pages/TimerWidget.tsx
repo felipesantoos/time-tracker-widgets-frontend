@@ -48,9 +48,7 @@ export default function TimerWidget() {
         
         setProjects(projectsList);
         setPomodoroSettings(settings);
-        if (projectsList.length > 0 && !selectedProjectId) {
-          setSelectedProjectId(projectsList[0].id);
-        }
+        // Não selecionar projeto automaticamente - usuário escolhe manualmente
       } catch (err) {
         console.error('Erro ao carregar dados:', err);
         setProjects([]);
