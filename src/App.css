@@ -12,17 +12,32 @@ body {
   -moz-osx-font-smoothing: grayscale;
   background: #fff;
   color: #333;
+  margin: 0;
+  padding: 0;
 }
 
 #root {
   min-height: 100vh;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 2rem 1rem;
+  box-sizing: border-box;
+}
+
+#root > * {
+  width: 100%;
+  max-width: 800px;
 }
 
 /* Widget container - otimizado para embeds no Notion */
 .widget-container {
   padding: 1.5rem;
-  max-width: 100%;
+  max-width: 800px;
+  width: 100%;
   margin: 0 auto;
+  box-sizing: border-box;
 }
 
 /* Botões */
