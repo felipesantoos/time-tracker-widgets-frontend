@@ -84,11 +84,11 @@ export default function ReportsWidget() {
   }
 
   if (loading) {
-    return <div className="widget-container">Carregando...</div>;
+    return <div className="widget-container with-timer-space">Carregando...</div>;
   }
 
   return (
-    <div className="widget-container">
+    <div className="widget-container with-timer-space">
       <div className="flex-between mb-1 gap-1" style={{ flexWrap: 'wrap' }}>
         <div className="flex" style={{ alignItems: 'center', gap: '0.5rem' }}>
           <h2 className="widget-title" style={{ fontSize: '1rem', marginBottom: 0 }}>Relatórios</h2>

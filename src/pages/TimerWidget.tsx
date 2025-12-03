@@ -655,7 +655,7 @@ export default function TimerWidget() {
   }
 
   if (loading) {
-    return <div className="widget-container">Carregando...</div>;
+    return <div className="widget-container with-timer-space">Carregando...</div>;
   }
 
   const displaySeconds = mode === 'timer' || mode === 'pomodoro' 
@@ -663,7 +663,7 @@ export default function TimerWidget() {
     : seconds;
 
   return (
-    <div className="widget-container">
+    <div className="widget-container with-timer-space">
       {message && (
         <Toast
           message={message.text}

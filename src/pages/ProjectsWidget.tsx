@@ -121,11 +121,11 @@ export default function ProjectsWidget() {
   }
 
   if (loading) {
-    return <div className="widget-container">Carregando...</div>;
+    return <div className="widget-container with-timer-space">Carregando...</div>;
   }
 
   return (
-    <div className="widget-container">
+    <div className="widget-container with-timer-space">
       {message && (
         <Toast
           message={message.text}
