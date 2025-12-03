@@ -293,6 +293,38 @@ export default function TimerWidget() {
     }
     
     try {
+      // Atualizar sessão ativa uma última vez com os valores atuais antes de finalizar
+      // Isso garante que o projeto e descrição corretos sejam salvos
+      try {
+        const activeSessionData: CreateActiveSessionData = {
+          startTime: startTime.toISOString(),
+          mode,
+        };
+        
+        if (selectedProjectId && selectedProjectId.trim() !== '') {
+          activeSessionData.projectId = selectedProjectId.trim();
+        } else {
+          activeSessionData.projectId = null;
+        }
+        
+        const trimmedDescription = description?.trim();
+        activeSessionData.description = trimmedDescription || undefined;
+        
+        if (mode === 'timer' || mode === 'pomodoro') {
+          activeSessionData.targetSeconds = mode === 'pomodoro' ? getPomodoroTarget() : targetSeconds;
+        }
+        
+        if (mode === 'pomodoro') {
+          activeSessionData.pomodoroPhase = pomodoroPhase;
+          activeSessionData.pomodoroCycle = pomodoroCycle;
+        }
+        
+        console.log('Atualizando sessão ativa antes de finalizar com projeto:', activeSessionData.projectId);
+        await sessionsApi.createActive(activeSessionData);
+      } catch (updateErr) {
+        console.warn('Erro ao atualizar sessão ativa antes de finalizar (continuando mesmo assim):', updateErr);
+      }
+      
       // Finalizar sessão ativa (cria TimeSession e remove ActiveSession)
       console.log('Finalizando sessão ativa...');
       const result = await sessionsApi.finishActive();
@@ -353,6 +385,31 @@ export default function TimerWidget() {
       
       if (duration > 0) {
         try {
+          // Atualizar sessão ativa uma última vez com os valores atuais antes de finalizar
+          try {
+            const activeSessionData: CreateActiveSessionData = {
+              startTime: startTime.toISOString(),
+              mode: 'pomodoro',
+            };
+            
+            if (selectedProjectId && selectedProjectId.trim() !== '') {
+              activeSessionData.projectId = selectedProjectId.trim();
+            } else {
+              activeSessionData.projectId = null;
+            }
+            
+            const trimmedDescription = description?.trim();
+            activeSessionData.description = trimmedDescription || undefined;
+            activeSessionData.targetSeconds = getPomodoroTarget();
+            activeSessionData.pomodoroPhase = pomodoroPhase;
+            activeSessionData.pomodoroCycle = pomodoroCycle;
+            
+            console.log('Atualizando sessão ativa antes de finalizar (pomodoro) com projeto:', activeSessionData.projectId);
+            await sessionsApi.createActive(activeSessionData);
+          } catch (updateErr) {
+            console.warn('Erro ao atualizar sessão ativa antes de finalizar (continuando mesmo assim):', updateErr);
+          }
+          
           // Tentar finalizar sessão ativa primeiro
           await sessionsApi.finishActive();
         } catch (err) {
@@ -648,7 +705,6 @@ export default function TimerWidget() {
           <select
             value={selectedProjectId}
             onChange={(e) => setSelectedProjectId(e.target.value)}
-            disabled={isRunning}
             style={{ padding: '0.3rem', fontSize: '0.8rem' }}
           >
             <option value="">Selecione...</option>
