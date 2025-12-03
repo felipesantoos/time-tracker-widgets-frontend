@@ -25,6 +25,32 @@ export interface CreateSessionData {
   mode: 'stopwatch' | 'timer' | 'pomodoro';
 }
 
+export interface ActiveSession {
+  id: string;
+  startTime: string;
+  mode: 'stopwatch' | 'timer' | 'pomodoro';
+  projectId: string | null;
+  description?: string;
+  targetSeconds: number | null;
+  pomodoroPhase: 'work' | 'shortBreak' | 'longBreak' | null;
+  pomodoroCycle: number;
+  project: {
+    id: string;
+    name: string;
+    color: string;
+  } | null;
+}
+
+export interface CreateActiveSessionData {
+  startTime: string;
+  mode: 'stopwatch' | 'timer' | 'pomodoro';
+  projectId?: string | null;
+  description?: string;
+  targetSeconds?: number | null;
+  pomodoroPhase?: 'work' | 'shortBreak' | 'longBreak' | null;
+  pomodoroCycle?: number;
+}
+
 export const sessionsApi = {
   list: (params?: {
     projectId?: string;
@@ -50,5 +76,10 @@ export const sessionsApi = {
   update: (id: string, data: { description?: string; projectId?: string | null; startTime?: string; endTime?: string }) =>
     api.patch<ApiResponse<TimeSession>>(`/sessions/${id}`, data),
   delete: (id: string) => api.delete(`/sessions/${id}`),
+  getActive: () => api.get<ApiResponse<ActiveSession>>('/sessions/active'),
+  createActive: (data: CreateActiveSessionData) =>
+    api.post<ApiResponse<ActiveSession>>('/sessions/active', data),
+  finishActive: () =>
+    api.delete<ApiResponse<TimeSession>>('/sessions/active'),
 };
 

@@ -3,6 +3,7 @@ import { sessionsApi, type TimeSession } from '../api/sessions';
 import { projectsApi, type Project } from '../api/projects';
 import ConfirmDialog from '../components/ConfirmDialog';
 import Toast from '../components/Toast';
+import { formatDateToLocal, utcToLocalDatetime, localDatetimeToUtc } from '../utils/dateUtils';
 import '../App.css';
 
 export default function SessionsWidget() {
@@ -95,11 +96,9 @@ export default function SessionsWidget() {
     setEditDescription(session.description || '');
     setEditProjectId(session.projectId || '');
     
-    // Converter datas para formato de input datetime-local
-    const startDate = new Date(session.startTime);
-    const endDate = new Date(session.endTime);
-    setEditStartTime(startDate.toISOString().slice(0, 16));
-    setEditEndTime(endDate.toISOString().slice(0, 16));
+    // Converter datas UTC para formato de input datetime-local (horário local)
+    setEditStartTime(utcToLocalDatetime(session.startTime));
+    setEditEndTime(utcToLocalDatetime(session.endTime));
   }
 
   function cancelEdit() {
@@ -128,11 +127,13 @@ export default function SessionsWidget() {
       }
 
       if (editStartTime) {
-        updateData.startTime = new Date(editStartTime).toISOString();
+        // Converter de horário local para UTC
+        updateData.startTime = localDatetimeToUtc(editStartTime);
       }
 
       if (editEndTime) {
-        updateData.endTime = new Date(editEndTime).toISOString();
+        // Converter de horário local para UTC
+        updateData.endTime = localDatetimeToUtc(editEndTime);
       }
 
       await sessionsApi.update(id, updateData);
@@ -181,14 +182,7 @@ export default function SessionsWidget() {
   }
 
   function formatDate(dateString: string): string {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('pt-BR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+    return formatDateToLocal(dateString);
   }
 
   return (

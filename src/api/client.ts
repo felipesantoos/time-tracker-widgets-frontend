@@ -78,18 +78,23 @@ async function request<T>(
   // Verificar se há conteúdo antes de tentar fazer JSON
   const contentType = response.headers.get('content-type');
   if (!contentType || !contentType.includes('application/json')) {
+    console.warn('Resposta não é JSON:', contentType, endpoint);
     return null as T;
   }
 
   // Verificar se há conteúdo no body
   const text = await response.text();
   if (!text || text.trim() === '') {
+    console.warn('Resposta vazia para:', endpoint);
     return null as T;
   }
 
   try {
-    return JSON.parse(text) as T;
-  } catch {
+    const parsed = JSON.parse(text) as T;
+    console.log('Resposta parseada com sucesso para:', endpoint, parsed);
+    return parsed;
+  } catch (parseError) {
+    console.error('Erro ao fazer parse JSON para:', endpoint, parseError, 'Texto:', text);
     return null as T;
   }
 }

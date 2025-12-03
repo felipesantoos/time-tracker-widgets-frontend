@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { projectsApi, type Project } from '../api/projects';
-import { sessionsApi, type CreateSessionData } from '../api/sessions';
+import { sessionsApi, type CreateSessionData, type CreateActiveSessionData } from '../api/sessions';
 import { settingsApi, type PomodoroSettings } from '../api/settings';
 import ConfirmDialog from '../components/ConfirmDialog';
 import Toast from '../components/Toast';
@@ -41,19 +41,55 @@ export default function TimerWidget() {
     }
   }, [message]);
 
-  // Carregar projetos e settings
+  // Carregar projetos, settings e sessão ativa
   useEffect(() => {
     async function loadData() {
       try {
-        const [projectsRes, settingsRes] = await Promise.all([
+        const [projectsRes, settingsRes, activeSessionRes] = await Promise.all([
           projectsApi.list(),
           settingsApi.getPomodoro(),
+          sessionsApi.getActive().catch(() => ({ data: null })), // Ignora erro 404
         ]);
         const projectsList = projectsRes.data || [];
         const settings = settingsRes.data || null;
+        const activeSession = activeSessionRes.data;
         
         setProjects(projectsList);
         setPomodoroSettings(settings);
+        
+        // Restaurar sessão ativa se existir
+        if (activeSession) {
+          const now = new Date();
+          const startTime = new Date(activeSession.startTime);
+          const elapsedSeconds = Math.floor((now.getTime() - startTime.getTime()) / 1000);
+          
+          setMode(activeSession.mode);
+          setStartTime(startTime);
+          setSeconds(Math.max(0, elapsedSeconds));
+          setIsRunning(true);
+          
+          if (activeSession.projectId) {
+            setSelectedProjectId(activeSession.projectId);
+          }
+          
+          if (activeSession.description) {
+            setDescription(activeSession.description);
+          }
+          
+          if (activeSession.mode === 'timer' && activeSession.targetSeconds !== null) {
+            setTargetSeconds(activeSession.targetSeconds);
+          }
+          
+          if (activeSession.mode === 'pomodoro') {
+            if (activeSession.pomodoroPhase) {
+              setPomodoroPhase(activeSession.pomodoroPhase as PomodoroPhase);
+            }
+            setPomodoroCycle(activeSession.pomodoroCycle || 0);
+            if (activeSession.targetSeconds !== null) {
+              setTargetSeconds(activeSession.targetSeconds);
+            }
+          }
+        }
         // Não selecionar projeto automaticamente - usuário escolhe manualmente
       } catch (err) {
         console.error('Erro ao carregar dados:', err);
@@ -104,6 +140,48 @@ export default function TimerWidget() {
     };
   }, [isRunning, mode, targetSeconds]);
 
+  // Atualizar sessão ativa quando descrição ou projeto mudarem durante execução
+  useEffect(() => {
+    if (isRunning && startTime) {
+      const updateActiveSession = async () => {
+        try {
+          const activeSessionData: CreateActiveSessionData = {
+            startTime: startTime.toISOString(),
+            mode,
+          };
+          
+          if (selectedProjectId && selectedProjectId.trim() !== '') {
+            activeSessionData.projectId = selectedProjectId.trim();
+          } else {
+            activeSessionData.projectId = null;
+          }
+          
+          // Sempre enviar description, mesmo se vazio, para atualizar no backend
+          const trimmedDescription = description?.trim();
+          activeSessionData.description = trimmedDescription || undefined;
+          
+          if (mode === 'timer' || mode === 'pomodoro') {
+            activeSessionData.targetSeconds = mode === 'pomodoro' ? getPomodoroTarget() : targetSeconds;
+          }
+          
+          if (mode === 'pomodoro') {
+            activeSessionData.pomodoroPhase = pomodoroPhase;
+            activeSessionData.pomodoroCycle = pomodoroCycle;
+          }
+          
+          console.log('Atualizando sessão ativa com descrição:', activeSessionData.description);
+          await sessionsApi.createActive(activeSessionData);
+        } catch (err) {
+          console.error('Erro ao atualizar sessão ativa:', err);
+        }
+      };
+
+      // Debounce para evitar muitas atualizações
+      const timeoutId = setTimeout(updateActiveSession, 500);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [isRunning, startTime, description, selectedProjectId, mode, targetSeconds, pomodoroPhase, pomodoroCycle]);
+
   function getPomodoroTarget(): number {
     if (!pomodoroSettings) return 0;
     
@@ -127,13 +205,14 @@ export default function TimerWidget() {
     return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   }
 
-  function handleStart() {
+  async function handleStart() {
     if (mode === 'timer' && targetSeconds === 0) {
       setMessage({ text: 'Defina um tempo para o timer', type: 'error' });
       return;
     }
 
-    setStartTime(new Date());
+    const now = new Date();
+    setStartTime(now);
     setIsRunning(true);
     
     if (mode === 'stopwatch') {
@@ -142,6 +221,38 @@ export default function TimerWidget() {
       setSeconds(0);
     } else if (mode === 'pomodoro') {
       setSeconds(0);
+    }
+    
+    // Salvar sessão ativa no backend
+    try {
+      const activeSessionData: CreateActiveSessionData = {
+        startTime: now.toISOString(),
+        mode,
+      };
+      
+      if (selectedProjectId && selectedProjectId.trim() !== '') {
+        activeSessionData.projectId = selectedProjectId.trim();
+      } else {
+        activeSessionData.projectId = null;
+      }
+      
+      if (description?.trim()) {
+        activeSessionData.description = description.trim();
+      }
+      
+      if (mode === 'timer' || mode === 'pomodoro') {
+        activeSessionData.targetSeconds = mode === 'pomodoro' ? getPomodoroTarget() : targetSeconds;
+      }
+      
+      if (mode === 'pomodoro') {
+        activeSessionData.pomodoroPhase = pomodoroPhase;
+        activeSessionData.pomodoroCycle = pomodoroCycle;
+      }
+      
+      await sessionsApi.createActive(activeSessionData);
+    } catch (err) {
+      console.error('Erro ao salvar sessão ativa:', err);
+      // Não mostrar erro ao usuário, apenas logar
     }
   }
 
@@ -168,6 +279,12 @@ export default function TimerWidget() {
     if (duration <= 0) {
       console.warn('Duração inválida:', duration);
       setMessage({ text: 'A sessão precisa ter duração maior que zero', type: 'error' });
+      // Tentar remover sessão ativa mesmo assim
+      try {
+        await sessionsApi.finishActive();
+      } catch (err) {
+        // Ignorar erro
+      }
       // Resetar mesmo se a duração for inválida
       setSeconds(0);
       setStartTime(null);
@@ -176,29 +293,40 @@ export default function TimerWidget() {
     }
     
     try {
-      const sessionData: CreateSessionData = {
-        startTime: startTime.toISOString(),
-        endTime: endTime.toISOString(),
-        durationSeconds: duration,
-        mode,
-      };
+      // Finalizar sessão ativa (cria TimeSession e remove ActiveSession)
+      console.log('Finalizando sessão ativa...');
+      const result = await sessionsApi.finishActive();
+      console.log('Resultado de finishActive:', result);
       
-      // Adicionar projectId apenas se um projeto foi selecionado
-      if (selectedProjectId && selectedProjectId.trim() !== '') {
-        sessionData.projectId = selectedProjectId.trim();
+      if (result && result.data) {
+        console.log('Sessão criada com sucesso:', result.data.id);
+        setMessage({ text: 'Sessão salva com sucesso!', type: 'success' });
       } else {
-        sessionData.projectId = null;
+        console.log('Nenhuma sessão ativa encontrada, criando manualmente...');
+        // Se não havia sessão ativa, criar manualmente
+        const sessionData: CreateSessionData = {
+          startTime: startTime.toISOString(),
+          endTime: endTime.toISOString(),
+          durationSeconds: duration,
+          mode,
+        };
+        
+        if (selectedProjectId && selectedProjectId.trim() !== '') {
+          sessionData.projectId = selectedProjectId.trim();
+        } else {
+          sessionData.projectId = null;
+        }
+        
+        const trimmedDescription = description?.trim();
+        if (trimmedDescription) {
+          sessionData.description = trimmedDescription;
+        }
+        
+        console.log('Criando sessão manualmente:', sessionData);
+        const createdSession = await sessionsApi.create(sessionData);
+        console.log('Sessão criada manualmente:', createdSession);
+        setMessage({ text: 'Sessão salva com sucesso!', type: 'success' });
       }
-      
-      // Adicionar description apenas se não estiver vazio
-      const trimmedDescription = description?.trim();
-      if (trimmedDescription) {
-        sessionData.description = trimmedDescription;
-      }
-      
-      console.log('Enviando sessão:', sessionData);
-      await sessionsApi.create(sessionData);
-      setMessage({ text: 'Sessão salva com sucesso!', type: 'success' });
       
       // Resetar estado
       setSeconds(0);
@@ -215,7 +343,7 @@ export default function TimerWidget() {
     }
   }
 
-  function handlePomodoroComplete() {
+  async function handlePomodoroComplete() {
     setIsRunning(false);
     
     // Salvar sessão de trabalho
@@ -224,24 +352,30 @@ export default function TimerWidget() {
       const duration = Math.floor((endTime.getTime() - startTime.getTime()) / 1000);
       
       if (duration > 0) {
-        const sessionData: CreateSessionData = {
-          startTime: startTime.toISOString(),
-          endTime: endTime.toISOString(),
-          durationSeconds: duration,
-          mode: 'pomodoro',
-        };
-        
-        if (selectedProjectId && selectedProjectId.trim() !== '') {
-          sessionData.projectId = selectedProjectId.trim();
-        } else {
-          sessionData.projectId = null;
+        try {
+          // Tentar finalizar sessão ativa primeiro
+          await sessionsApi.finishActive();
+        } catch (err) {
+          // Se não houver sessão ativa, criar manualmente
+          const sessionData: CreateSessionData = {
+            startTime: startTime.toISOString(),
+            endTime: endTime.toISOString(),
+            durationSeconds: duration,
+            mode: 'pomodoro',
+          };
+          
+          if (selectedProjectId && selectedProjectId.trim() !== '') {
+            sessionData.projectId = selectedProjectId.trim();
+          } else {
+            sessionData.projectId = null;
+          }
+          
+          if (description?.trim()) {
+            sessionData.description = description.trim();
+          }
+          
+          await sessionsApi.create(sessionData);
         }
-        
-        if (description?.trim()) {
-          sessionData.description = description.trim();
-        }
-        
-        sessionsApi.create(sessionData).catch(console.error);
       }
     }
     
@@ -260,10 +394,30 @@ export default function TimerWidget() {
       }
       
       if (pomodoroSettings?.autoStartBreak) {
-        setTimeout(() => {
-          setStartTime(new Date());
+        setTimeout(async () => {
+          const now = new Date();
+          const nextPhase = newCycle % pomodoroSettings.longBreakInterval === 0 ? 'longBreak' : 'shortBreak';
+          setStartTime(now);
           setIsRunning(true);
           setSeconds(0);
+          
+          // Salvar sessão ativa para a pausa
+          try {
+            const activeSessionData: CreateActiveSessionData = {
+              startTime: now.toISOString(),
+              mode: 'pomodoro',
+              projectId: selectedProjectId || null,
+              description: description || undefined,
+              targetSeconds: nextPhase === 'longBreak' 
+                ? pomodoroSettings.longBreakMinutes * 60 
+                : pomodoroSettings.shortBreakMinutes * 60,
+              pomodoroPhase: nextPhase,
+              pomodoroCycle: newCycle,
+            };
+            await sessionsApi.createActive(activeSessionData);
+          } catch (err) {
+            console.error('Erro ao salvar sessão ativa:', err);
+          }
         }, 1000);
       }
     } else {
@@ -272,6 +426,13 @@ export default function TimerWidget() {
       setTargetSeconds(pomodoroSettings?.workMinutes || 25 * 60);
       setStartTime(null);
       setSeconds(0);
+      
+      // Remover sessão ativa se existir
+      try {
+        await sessionsApi.finishActive();
+      } catch (err) {
+        // Ignorar erro se não houver sessão ativa
+      }
     }
   }
 
@@ -284,7 +445,14 @@ export default function TimerWidget() {
     applyModeChange(newMode);
   }
 
-  function applyModeChange(newMode: TimerMode) {
+  async function applyModeChange(newMode: TimerMode) {
+    // Se houver sessão ativa, removê-la ao mudar de modo
+    try {
+      await sessionsApi.finishActive();
+    } catch (err) {
+      // Ignorar erro se não houver sessão ativa
+    }
+    
     setMode(newMode);
     setSeconds(0);
     setPomodoroPhase('work');

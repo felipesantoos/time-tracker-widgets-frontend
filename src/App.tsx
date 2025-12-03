@@ -5,6 +5,7 @@ import ProjectsWidget from './pages/ProjectsWidget';
 import SessionsWidget from './pages/SessionsWidget';
 import ReportsWidget from './pages/ReportsWidget';
 import SettingsWidget from './pages/SettingsWidget';
+import HomePage from './pages/HomePage';
 import './App.css';
 
 function AuthGuard({ children }: { children: React.ReactNode }) {
@@ -77,12 +78,7 @@ function App() {
           />
           <Route
             path="/"
-            element={
-              <div style={{ padding: '2rem' }}>
-                <h1>Time Tracker Widgets</h1>
-                <p>Use as rotas: /timer, /projects, /sessions, /reports, /settings</p>
-              </div>
-            }
+            element={<HomePage />}
           />
         </Routes>
       </AuthProvider>
