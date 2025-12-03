@@ -47,7 +47,7 @@ export const sessionsApi = {
   },
   create: (data: CreateSessionData) =>
     api.post<ApiResponse<TimeSession>>('/sessions', data),
-  update: (id: string, data: { description?: string; projectId?: string }) =>
+  update: (id: string, data: { description?: string; projectId?: string | null; startTime?: string; endTime?: string }) =>
     api.patch<ApiResponse<TimeSession>>(`/sessions/${id}`, data),
   delete: (id: string) => api.delete(`/sessions/${id}`),
 };

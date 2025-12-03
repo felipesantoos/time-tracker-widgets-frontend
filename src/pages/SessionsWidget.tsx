@@ -12,6 +12,9 @@ export default function SessionsWidget() {
   const [filterTo, setFilterTo] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editDescription, setEditDescription] = useState('');
+  const [editProjectId, setEditProjectId] = useState<string>('');
+  const [editStartTime, setEditStartTime] = useState<string>('');
+  const [editEndTime, setEditEndTime] = useState<string>('');
   const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
 
   useEffect(() => {
@@ -60,35 +63,72 @@ export default function SessionsWidget() {
   function startEdit(session: TimeSession) {
     setEditingId(session.id);
     setEditDescription(session.description || '');
+    setEditProjectId(session.projectId || '');
+    
+    // Converter datas para formato de input datetime-local
+    const startDate = new Date(session.startTime);
+    const endDate = new Date(session.endTime);
+    setEditStartTime(startDate.toISOString().slice(0, 16));
+    setEditEndTime(endDate.toISOString().slice(0, 16));
   }
 
   function cancelEdit() {
     setEditingId(null);
     setEditDescription('');
+    setEditProjectId('');
+    setEditStartTime('');
+    setEditEndTime('');
   }
 
   async function handleUpdate(id: string) {
     try {
-      await sessionsApi.update(id, { description: editDescription });
+      const updateData: {
+        description?: string;
+        projectId?: string | null;
+        startTime?: string;
+        endTime?: string;
+      } = {};
+
+      if (editDescription !== undefined) {
+        updateData.description = editDescription.trim() || undefined;
+      }
+
+      if (editProjectId !== undefined) {
+        updateData.projectId = editProjectId && editProjectId.trim() !== '' ? editProjectId.trim() : null;
+      }
+
+      if (editStartTime) {
+        updateData.startTime = new Date(editStartTime).toISOString();
+      }
+
+      if (editEndTime) {
+        updateData.endTime = new Date(editEndTime).toISOString();
+      }
+
+      await sessionsApi.update(id, updateData);
       cancelEdit();
+      setMessage({ text: 'Sessão atualizada com sucesso!', type: 'success' });
       loadSessions();
     } catch (err) {
       console.error('Erro ao atualizar sessão:', err);
-      alert('Erro ao atualizar sessão');
+      const errorMessage = err instanceof Error ? err.message : 'Erro ao atualizar sessão';
+      setMessage({ text: errorMessage, type: 'error' });
     }
   }
 
   async function handleDelete(id: string) {
-    if (!confirm('Tem certeza que deseja deletar esta sessão?')) {
+    if (!window.confirm('Tem certeza que deseja deletar esta sessão?')) {
       return;
     }
 
     try {
       await sessionsApi.delete(id);
+      setMessage({ text: 'Sessão deletada com sucesso!', type: 'success' });
       loadSessions();
     } catch (err) {
       console.error('Erro ao deletar sessão:', err);
-      alert('Erro ao deletar sessão');
+      const errorMessage = err instanceof Error ? err.message : 'Erro ao deletar sessão';
+      setMessage({ text: errorMessage, type: 'error' });
     }
   }
 
@@ -182,11 +222,54 @@ export default function SessionsWidget() {
               {editingId === session.id ? (
                 <div>
                   <div className="mb-1">
+                    <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.9rem' }}>
+                      Projeto:
+                    </label>
+                    <select
+                      value={editProjectId}
+                      onChange={(e) => setEditProjectId(e.target.value)}
+                      style={{ width: '100%', marginBottom: '0.75rem' }}
+                    >
+                      <option value="">Sem projeto</option>
+                      {projects.map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="mb-1">
+                    <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.9rem' }}>
+                      Início:
+                    </label>
+                    <input
+                      type="datetime-local"
+                      value={editStartTime}
+                      onChange={(e) => setEditStartTime(e.target.value)}
+                      style={{ width: '100%', marginBottom: '0.75rem' }}
+                    />
+                  </div>
+                  <div className="mb-1">
+                    <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.9rem' }}>
+                      Término:
+                    </label>
+                    <input
+                      type="datetime-local"
+                      value={editEndTime}
+                      onChange={(e) => setEditEndTime(e.target.value)}
+                      style={{ width: '100%', marginBottom: '0.75rem' }}
+                    />
+                  </div>
+                  <div className="mb-1">
+                    <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.9rem' }}>
+                      Descrição:
+                    </label>
                     <textarea
                       value={editDescription}
                       onChange={(e) => setEditDescription(e.target.value)}
                       placeholder="Descrição"
                       rows={2}
+                      style={{ width: '100%', marginBottom: '0.75rem' }}
                     />
                   </div>
                   <div className="flex gap-1">
