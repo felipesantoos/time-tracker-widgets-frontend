@@ -3,7 +3,6 @@ import { settingsApi, type PomodoroSettings } from '../api/settings';
 import '../App.css';
 
 export default function SettingsWidget() {
-  const [settings, setSettings] = useState<PomodoroSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
@@ -30,7 +29,6 @@ export default function SettingsWidget() {
       const res = await settingsApi.getPomodoro();
       const data = res.data;
       if (data) {
-        setSettings(data);
         setWorkMinutes(data.workMinutes);
         setShortBreakMinutes(data.shortBreakMinutes);
         setLongBreakMinutes(data.longBreakMinutes);
