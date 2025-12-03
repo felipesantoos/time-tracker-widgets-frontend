@@ -38,12 +38,13 @@ body {
   overflow-y: auto;
   display: flex;
   flex-direction: column;
+  padding-bottom: calc(0.75rem + 60px); /* Espaço para a barra de timer quando visível */
 }
 
 /* Classe para títulos principais dos widgets - mesma distância do topo */
 .widget-title {
   margin-top: 0 !important;
-  margin-bottom: 0.5rem !important;
+  margin-bottom: 0 !important;
   font-size: 1.1rem;
 }
 
@@ -148,4 +149,110 @@ select:focus {
     opacity: 1;
     transform: translateX(-50%) translateY(0);
   }
+}
+
+/* Active Timer Bar */
+.active-timer-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #fff;
+  border-top: 1px solid #e0e0e0;
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  padding: 0.4rem 0.75rem;
+  height: auto;
+  min-height: 40px;
+  max-height: 45px;
+  overflow: hidden;
+}
+
+.active-timer-bar-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  max-width: 100%;
+  height: 100%;
+}
+
+.active-timer-bar-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.active-timer-bar-time {
+  font-size: 0.9rem;
+  font-weight: bold;
+  font-family: monospace;
+  color: #333;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.active-timer-bar-details {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex: 1;
+  min-width: 0;
+  font-size: 0.75rem;
+  color: #666;
+  overflow: hidden;
+}
+
+.active-timer-bar-mode {
+  padding: 0.15rem 0.4rem;
+  background: #f0f0f0;
+  border-radius: 3px;
+  font-size: 0.7rem;
+  white-space: nowrap;
+}
+
+.active-timer-bar-project {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  min-width: 0;
+}
+
+.active-timer-bar-project-color {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.active-timer-bar-project-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 120px;
+  font-size: 0.75rem;
+}
+
+.active-timer-bar-description {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 150px;
+  color: #999;
+  font-size: 0.75rem;
+}
+
+.active-timer-bar-stop {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.active-timer-bar-stop:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }

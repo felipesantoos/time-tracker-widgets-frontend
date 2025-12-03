@@ -3,6 +3,7 @@ import { sessionsApi, type TimeSession } from '../api/sessions';
 import { projectsApi, type Project } from '../api/projects';
 import ConfirmDialog from '../components/ConfirmDialog';
 import Toast from '../components/Toast';
+import Modal from '../components/Modal';
 import { formatDateToLocal, utcToLocalDatetime, localDatetimeToUtc } from '../utils/dateUtils';
 import '../App.css';
 
@@ -200,7 +201,7 @@ export default function SessionsWidget() {
         />
       )}
 
-      <div className="flex-between mb-1" style={{ alignItems: 'center' }}>
+      <div className="flex mb-1" style={{ alignItems: 'center', gap: '0.5rem' }}>
         <h2 className="widget-title" style={{ fontSize: '1rem', marginBottom: 0 }}>Sessões</h2>
         <button
           onClick={handleRefresh}
@@ -266,120 +267,131 @@ export default function SessionsWidget() {
           <div>
             {sessions.map((session) => (
               <div key={session.id} className="card mb-1" style={{ padding: '0.5rem' }}>
-                {editingId === session.id ? (
-                  <div>
-                    <div className="mb-1">
-                      <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.75rem' }}>
-                        Projeto:
-                      </label>
-                      <select
-                        value={editProjectId}
-                        onChange={(e) => setEditProjectId(e.target.value)}
-                        style={{ width: '100%', marginBottom: '0.5rem', padding: '0.3rem', fontSize: '0.8rem' }}
-                      >
-                        <option value="">Sem projeto</option>
-                        {projects.map((p) => (
-                          <option key={p.id} value={p.id}>
-                            {p.name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="mb-1">
-                      <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.75rem' }}>
-                        Início:
-                      </label>
-                      <input
-                        type="datetime-local"
-                        value={editStartTime}
-                        onChange={(e) => setEditStartTime(e.target.value)}
-                        style={{ width: '100%', marginBottom: '0.5rem', padding: '0.3rem', fontSize: '0.8rem' }}
-                      />
-                    </div>
-                    <div className="mb-1">
-                      <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.75rem' }}>
-                        Término:
-                      </label>
-                      <input
-                        type="datetime-local"
-                        value={editEndTime}
-                        onChange={(e) => setEditEndTime(e.target.value)}
-                        style={{ width: '100%', marginBottom: '0.5rem', padding: '0.3rem', fontSize: '0.8rem' }}
-                      />
-                    </div>
-                    <div className="mb-1">
-                      <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.75rem' }}>
-                        Descrição:
-                      </label>
-                      <textarea
-                        value={editDescription}
-                        onChange={(e) => setEditDescription(e.target.value)}
-                        placeholder="Descrição"
-                        rows={1}
-                        style={{ width: '100%', marginBottom: '0.5rem', padding: '0.3rem', fontSize: '0.8rem', resize: 'vertical' }}
-                      />
-                    </div>
-                    <div className="flex gap-1">
-                      <button
-                        className="primary"
-                        onClick={() => handleUpdate(session.id)}
-                        style={{ padding: '0.3rem 0.5rem', fontSize: '0.75rem' }}
-                      >
-                        Salvar
-                      </button>
-                      <button onClick={cancelEdit} style={{ padding: '0.3rem 0.5rem', fontSize: '0.75rem' }}>Cancelar</button>
-                    </div>
-                  </div>
-                ) : (
-                  <div>
-                    <div className="flex-between mb-1 gap-1">
-                      <div className="flex gap-1" style={{ alignItems: 'center', flex: 1, minWidth: 0 }}>
-                        {session.project ? (
-                          <>
-                            <div
-                              style={{
-                                width: '12px',
-                                height: '12px',
-                                borderRadius: '3px',
-                                backgroundColor: session.project.color,
-                                flexShrink: 0,
-                              }}
-                            />
-                            <strong style={{ fontSize: '0.85rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{session.project.name}</strong>
-                          </>
-                        ) : (
-                          <strong style={{ color: '#999', fontSize: '0.85rem' }}>Sem projeto</strong>
-                        )}
-                        <span style={{ fontSize: '0.75rem', color: '#666', marginLeft: '0.25rem' }}>
-                          {formatDate(session.startTime)}
-                        </span>
-                      </div>
-                      <div className="flex gap-1" style={{ flexShrink: 0 }}>
-                        <button onClick={() => startEdit(session)} style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }}>Editar</button>
-                        <button
-                          className="danger"
-                          onClick={() => handleDeleteClick(session.id)}
-                          style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }}
-                        >
-                          Deletar
-                        </button>
-                      </div>
-                    </div>
-                    {session.description && (
-                      <p style={{ fontSize: '0.75rem', color: '#666', marginBottom: '0.25rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {session.description}
-                      </p>
-                    )}
-                    <div style={{ fontSize: '0.75rem', color: '#666' }}>
-                      <span>
-                        {formatDuration(session.durationSeconds)} • {session.mode}
+                <div>
+                  <div className="flex-between mb-1 gap-1">
+                    <div className="flex gap-1" style={{ alignItems: 'center', flex: 1, minWidth: 0 }}>
+                      {session.project ? (
+                        <>
+                          <div
+                            style={{
+                              width: '12px',
+                              height: '12px',
+                              borderRadius: '3px',
+                              backgroundColor: session.project.color,
+                              flexShrink: 0,
+                            }}
+                          />
+                          <strong style={{ fontSize: '0.85rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{session.project.name}</strong>
+                        </>
+                      ) : (
+                        <strong style={{ color: '#999', fontSize: '0.85rem' }}>Sem projeto</strong>
+                      )}
+                      <span style={{ fontSize: '0.75rem', color: '#666', marginLeft: '0.25rem' }}>
+                        {formatDate(session.startTime)}
                       </span>
                     </div>
+                    <div className="flex gap-1" style={{ flexShrink: 0 }}>
+                      <button onClick={() => startEdit(session)} style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }}>Editar</button>
+                      <button
+                        className="danger"
+                        onClick={() => handleDeleteClick(session.id)}
+                        style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }}
+                      >
+                        Deletar
+                      </button>
+                    </div>
                   </div>
-                )}
+                  {session.description && (
+                    <p style={{ fontSize: '0.75rem', color: '#666', marginBottom: '0.25rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {session.description}
+                    </p>
+                  )}
+                  <div style={{ fontSize: '0.75rem', color: '#666' }}>
+                    <span>
+                      {formatDuration(session.durationSeconds)} • {session.mode}
+                    </span>
+                  </div>
+                </div>
               </div>
             ))}
           </div>
+
+          <Modal
+            isOpen={editingId !== null}
+            onClose={cancelEdit}
+            title="Editar Sessão"
+          >
+            {editingId && (
+              <div>
+                <div className="mb-1">
+                  <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.8rem' }}>
+                    Projeto:
+                  </label>
+                  <select
+                    value={editProjectId}
+                    onChange={(e) => setEditProjectId(e.target.value)}
+                    style={{ width: '100%', marginBottom: '0.5rem', padding: '0.3rem', fontSize: '0.8rem' }}
+                  >
+                    <option value="">Sem projeto</option>
+                    {projects.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="mb-1">
+                  <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.8rem' }}>
+                    Início:
+                  </label>
+                  <input
+                    type="datetime-local"
+                    value={editStartTime}
+                    onChange={(e) => setEditStartTime(e.target.value)}
+                    style={{ width: '100%', marginBottom: '0.5rem', padding: '0.3rem', fontSize: '0.8rem' }}
+                  />
+                </div>
+                <div className="mb-1">
+                  <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.8rem' }}>
+                    Término:
+                  </label>
+                  <input
+                    type="datetime-local"
+                    value={editEndTime}
+                    onChange={(e) => setEditEndTime(e.target.value)}
+                    style={{ width: '100%', marginBottom: '0.5rem', padding: '0.3rem', fontSize: '0.8rem' }}
+                  />
+                </div>
+                <div className="mb-1">
+                  <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.8rem' }}>
+                    Descrição:
+                  </label>
+                  <textarea
+                    value={editDescription}
+                    onChange={(e) => setEditDescription(e.target.value)}
+                    placeholder="Descrição"
+                    rows={3}
+                    style={{ width: '100%', marginBottom: '0.5rem', padding: '0.3rem', fontSize: '0.8rem', resize: 'vertical' }}
+                  />
+                </div>
+                <div className="flex gap-1" style={{ justifyContent: 'flex-end', marginTop: '1rem' }}>
+                  <button
+                    onClick={cancelEdit}
+                    style={{ padding: '0.3rem 0.5rem', fontSize: '0.75rem' }}
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    className="primary"
+                    onClick={() => editingId && handleUpdate(editingId)}
+                    style={{ padding: '0.3rem 0.5rem', fontSize: '0.75rem' }}
+                  >
+                    Salvar
+                  </button>
+                </div>
+              </div>
+            )}
+          </Modal>
           
           {/* Pagination Controls */}
           {pagination && pagination.totalPages > 1 && (

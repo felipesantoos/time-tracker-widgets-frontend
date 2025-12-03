@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { projectsApi, type Project } from '../api/projects';
 import { sessionsApi, type CreateSessionData, type CreateActiveSessionData } from '../api/sessions';
 import { settingsApi, type PomodoroSettings } from '../api/settings';
+import { useActiveSession } from '../contexts/ActiveSessionContext';
 import ConfirmDialog from '../components/ConfirmDialog';
 import Toast from '../components/Toast';
 import '../App.css';
@@ -10,6 +11,7 @@ type TimerMode = 'stopwatch' | 'timer' | 'pomodoro';
 type PomodoroPhase = 'work' | 'shortBreak' | 'longBreak';
 
 export default function TimerWidget() {
+  const { activeSession } = useActiveSession();
   const [mode, setMode] = useState<TimerMode>('stopwatch');
   const [isRunning, setIsRunning] = useState(false);
   const [seconds, setSeconds] = useState(0);
@@ -40,6 +42,67 @@ export default function TimerWidget() {
       return () => clearTimeout(timer);
     }
   }, [message]);
+
+  // Sincronizar com a sessão ativa do contexto (SSE)
+  useEffect(() => {
+    if (!activeSession) {
+      // Se não há sessão ativa mas o timer está rodando localmente, parar
+      if (isRunning && startTime) {
+        setIsRunning(false);
+        
+        // Limpar o interval imediatamente
+        if (intervalRef.current) {
+          clearInterval(intervalRef.current);
+          intervalRef.current = null;
+        }
+        
+        // Resetar estado
+        setSeconds(0);
+        setStartTime(null);
+      }
+      return;
+    }
+
+    // Se há uma sessão ativa, sincronizar o estado
+    const now = new Date();
+    const sessionStartTime = new Date(activeSession.startTime!);
+    const elapsedSeconds = Math.floor((now.getTime() - sessionStartTime.getTime()) / 1000);
+
+    // Só atualizar se o startTime local for diferente ou se não estiver rodando
+    const localStartTimeStr = startTime?.toISOString();
+    const sessionStartTimeStr = sessionStartTime.toISOString();
+    
+    if (!startTime || localStartTimeStr !== sessionStartTimeStr || !isRunning) {
+      setMode(activeSession.mode || 'stopwatch');
+      setStartTime(sessionStartTime);
+      setSeconds(Math.max(0, elapsedSeconds));
+      setIsRunning(true);
+
+      if (activeSession.projectId) {
+        setSelectedProjectId(activeSession.projectId);
+      }
+
+      if (activeSession.description) {
+        setDescription(activeSession.description);
+      }
+
+      if (activeSession.mode === 'timer' && activeSession.targetSeconds !== null && activeSession.targetSeconds !== undefined) {
+        setTargetSeconds(activeSession.targetSeconds);
+      }
+
+      if (activeSession.mode === 'pomodoro') {
+        if (activeSession.pomodoroPhase) {
+          setPomodoroPhase(activeSession.pomodoroPhase as PomodoroPhase);
+        }
+        setPomodoroCycle(activeSession.pomodoroCycle ?? 0);
+        if (activeSession.targetSeconds !== null && activeSession.targetSeconds !== undefined) {
+          setTargetSeconds(activeSession.targetSeconds);
+        }
+      }
+    }
+    // Nota: Não precisamos sincronizar os segundos aqui porque o timer já incrementa automaticamente
+    // quando isRunning é true. A sincronização inicial já foi feita acima.
+  }, [activeSession]);
 
   // Carregar projetos, settings e sessão ativa
   useEffect(() => {
@@ -610,7 +673,7 @@ export default function TimerWidget() {
         />
       )}
 
-      <div className="flex-between mb-1" style={{ alignItems: 'center' }}>
+      <div className="flex mb-1" style={{ alignItems: 'center', gap: '0.5rem' }}>
         <h2 className="widget-title" style={{ fontSize: '1rem', marginBottom: 0 }}>Time Tracker</h2>
         <button
           onClick={handleRefresh}

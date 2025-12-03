@@ -1,5 +1,7 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { ActiveSessionProvider } from './contexts/ActiveSessionContext';
+import ActiveTimerBar from './components/ActiveTimerBar';
 import TimerWidget from './pages/TimerWidget';
 import ProjectsWidget from './pages/ProjectsWidget';
 import SessionsWidget from './pages/SessionsWidget';
@@ -35,52 +37,57 @@ function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <Routes>
-          <Route
-            path="/timer"
-            element={
-              <AuthGuard>
-                <TimerWidget />
-              </AuthGuard>
-            }
-          />
-          <Route
-            path="/projects"
-            element={
-              <AuthGuard>
-                <ProjectsWidget />
-              </AuthGuard>
-            }
-          />
-          <Route
-            path="/sessions"
-            element={
-              <AuthGuard>
-                <SessionsWidget />
-              </AuthGuard>
-            }
-          />
-          <Route
-            path="/reports"
-            element={
-              <AuthGuard>
-                <ReportsWidget />
-              </AuthGuard>
-            }
-          />
-          <Route
-            path="/settings"
-            element={
-              <AuthGuard>
-                <SettingsWidget />
-              </AuthGuard>
-            }
-          />
-          <Route
-            path="/"
-            element={<HomePage />}
-          />
-        </Routes>
+        <ActiveSessionProvider>
+          <Routes>
+            <Route
+              path="/timer"
+              element={
+                <AuthGuard>
+                  <TimerWidget />
+                </AuthGuard>
+              }
+            />
+            <Route
+              path="/projects"
+              element={
+                <AuthGuard>
+                  <ProjectsWidget />
+                </AuthGuard>
+              }
+            />
+            <Route
+              path="/sessions"
+              element={
+                <AuthGuard>
+                  <SessionsWidget />
+                </AuthGuard>
+              }
+            />
+            <Route
+              path="/reports"
+              element={
+                <AuthGuard>
+                  <ReportsWidget />
+                </AuthGuard>
+              }
+            />
+            <Route
+              path="/settings"
+              element={
+                <AuthGuard>
+                  <SettingsWidget />
+                </AuthGuard>
+              }
+            />
+            <Route
+              path="/"
+              element={<HomePage />}
+            />
+          </Routes>
+          <AuthGuard>
+            <ActiveTimerBar />
+          </AuthGuard>
+        </ActiveSessionProvider>
       </AuthProvider>
     </BrowserRouter>
   );

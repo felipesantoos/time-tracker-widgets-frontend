@@ -90,8 +90,8 @@ export default function ReportsWidget() {
   return (
     <div className="widget-container">
       <div className="flex-between mb-1 gap-1" style={{ flexWrap: 'wrap' }}>
-        <h2 className="widget-title" style={{ fontSize: '1rem', marginBottom: 0 }}>Relatórios</h2>
-        <div className="flex gap-1">
+        <div className="flex" style={{ alignItems: 'center', gap: '0.5rem' }}>
+          <h2 className="widget-title" style={{ fontSize: '1rem', marginBottom: 0 }}>Relatórios</h2>
           <button
             onClick={handleRefresh}
             title="Atualizar"
@@ -104,6 +104,8 @@ export default function ReportsWidget() {
               <path d="M3 21v-5h5"></path>
             </svg>
           </button>
+        </div>
+        <div className="flex gap-1">
           <button
             onClick={() => setPeriod('today')}
             className={period === 'today' ? 'primary' : ''}
