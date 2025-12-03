@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { sessionsApi, type TimeSession } from '../api/sessions';
 import { projectsApi, type Project } from '../api/projects';
+import ConfirmDialog from '../components/ConfirmDialog';
+import Toast from '../components/Toast';
 import '../App.css';
 
 export default function SessionsWidget() {
@@ -23,6 +25,10 @@ export default function SessionsWidget() {
   const [editStartTime, setEditStartTime] = useState<string>('');
   const [editEndTime, setEditEndTime] = useState<string>('');
   const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
+  const [confirmDialog, setConfirmDialog] = useState<{ isOpen: boolean; sessionId: string | null }>({
+    isOpen: false,
+    sessionId: null,
+  });
   
   const ITEMS_PER_PAGE = 20;
 
@@ -140,20 +146,28 @@ export default function SessionsWidget() {
     }
   }
 
-  async function handleDelete(id: string) {
-    if (!window.confirm('Tem certeza que deseja deletar esta sessão?')) {
-      return;
-    }
+  function handleDeleteClick(id: string) {
+    setConfirmDialog({ isOpen: true, sessionId: id });
+  }
+
+  async function handleDeleteConfirm() {
+    if (!confirmDialog.sessionId) return;
 
     try {
-      await sessionsApi.delete(id);
+      await sessionsApi.delete(confirmDialog.sessionId);
       setMessage({ text: 'Sessão deletada com sucesso!', type: 'success' });
+      setConfirmDialog({ isOpen: false, sessionId: null });
       loadSessions();
     } catch (err) {
       console.error('Erro ao deletar sessão:', err);
       const errorMessage = err instanceof Error ? err.message : 'Erro ao deletar sessão';
       setMessage({ text: errorMessage, type: 'error' });
+      setConfirmDialog({ isOpen: false, sessionId: null });
     }
+  }
+
+  function handleDeleteCancel() {
+    setConfirmDialog({ isOpen: false, sessionId: null });
   }
 
   function formatDuration(seconds: number): string {
@@ -179,23 +193,16 @@ export default function SessionsWidget() {
 
   return (
     <div className="widget-container">
-      <h2>Sessões</h2>
-
       {message && (
-        <div
-          style={{
-            padding: '0.75rem 1rem',
-            marginBottom: '1rem',
-            borderRadius: '4px',
-            backgroundColor: message.type === 'success' ? '#d4edda' : '#f8d7da',
-            color: message.type === 'success' ? '#155724' : '#721c24',
-            border: `1px solid ${message.type === 'success' ? '#c3e6cb' : '#f5c6cb'}`,
-            fontSize: '0.9rem',
-          }}
-        >
-          {message.text}
-        </div>
+        <Toast
+          message={message.text}
+          type={message.type}
+          onClose={() => setMessage(null)}
+          duration={message.type === 'error' ? 6000 : 3000}
+        />
       )}
+
+      <h2>Sessões</h2>
 
       {/* Filters */}
       <div className="card mb-2">
@@ -334,7 +341,7 @@ export default function SessionsWidget() {
                         <button onClick={() => startEdit(session)}>Editar</button>
                         <button
                           className="danger"
-                          onClick={() => handleDelete(session.id)}
+                          onClick={() => handleDeleteClick(session.id)}
                         >
                           Deletar
                         </button>
@@ -400,6 +407,15 @@ export default function SessionsWidget() {
           )}
         </>
       )}
+
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        message="Tem certeza que deseja deletar esta sessão?"
+        onConfirm={handleDeleteConfirm}
+        onCancel={handleDeleteCancel}
+        confirmText="Deletar"
+        cancelText="Cancelar"
+      />
     </div>
   );
 }

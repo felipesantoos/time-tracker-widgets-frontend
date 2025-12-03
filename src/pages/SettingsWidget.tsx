@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { settingsApi } from '../api/settings';
+import Toast from '../components/Toast';
 import '../App.css';
 
 export default function SettingsWidget() {
@@ -69,23 +70,16 @@ export default function SettingsWidget() {
 
   return (
     <div className="widget-container">
-      <h2>Configurações do Pomodoro</h2>
-
       {message && (
-        <div
-          style={{
-            padding: '0.75rem 1rem',
-            marginBottom: '1rem',
-            borderRadius: '4px',
-            backgroundColor: message.type === 'success' ? '#d4edda' : '#f8d7da',
-            color: message.type === 'success' ? '#155724' : '#721c24',
-            border: `1px solid ${message.type === 'success' ? '#c3e6cb' : '#f5c6cb'}`,
-            fontSize: '0.9rem',
-          }}
-        >
-          {message.text}
-        </div>
+        <Toast
+          message={message.text}
+          type={message.type}
+          onClose={() => setMessage(null)}
+          duration={message.type === 'error' ? 6000 : 3000}
+        />
       )}
+
+      <h2>Configurações do Pomodoro</h2>
 
       <div className="card">
         <div className="mb-1">

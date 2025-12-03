@@ -65,11 +65,33 @@ async function request<T>(
     
     const error = await response.json().catch(() => ({ error: 'Erro desconhecido' }));
     const errorMessage = error.error || `Erro ${response.status}`;
-    const errorDetails = error.details ? `\nDetalhes: ${JSON.stringify(error.details, null, 2)}` : '';
-    throw new Error(errorMessage + errorDetails);
+    // Remover quebras de linha e detalhes complexos para exibição mais limpa
+    const cleanMessage = errorMessage.replace(/\n/g, ' ').trim();
+    throw new Error(cleanMessage);
   }
 
-  return response.json();
+  // Se a resposta for 204 No Content, retornar null em vez de tentar fazer JSON
+  if (response.status === 204) {
+    return null as T;
+  }
+
+  // Verificar se há conteúdo antes de tentar fazer JSON
+  const contentType = response.headers.get('content-type');
+  if (!contentType || !contentType.includes('application/json')) {
+    return null as T;
+  }
+
+  // Verificar se há conteúdo no body
+  const text = await response.text();
+  if (!text || text.trim() === '') {
+    return null as T;
+  }
+
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    return null as T;
+  }
 }
 
 export const api = {

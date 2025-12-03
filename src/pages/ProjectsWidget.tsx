@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { projectsApi, type Project } from '../api/projects';
+import ConfirmDialog from '../components/ConfirmDialog';
+import Toast from '../components/Toast';
 import '../App.css';
 
 export default function ProjectsWidget() {
@@ -12,6 +14,10 @@ export default function ProjectsWidget() {
   const [newName, setNewName] = useState('');
   const [newColor, setNewColor] = useState('#007bff');
   const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
+  const [confirmDialog, setConfirmDialog] = useState<{ isOpen: boolean; projectId: string | null }>({
+    isOpen: false,
+    projectId: null,
+  });
 
   useEffect(() => {
     if (message) {
@@ -86,19 +92,27 @@ export default function ProjectsWidget() {
     }
   }
 
-  async function handleDelete(id: string) {
-    if (!window.confirm('Tem certeza que deseja deletar este projeto?')) {
-      return;
-    }
+  function handleDeleteClick(id: string) {
+    setConfirmDialog({ isOpen: true, projectId: id });
+  }
+
+  async function handleDeleteConfirm() {
+    if (!confirmDialog.projectId) return;
 
     try {
-      await projectsApi.delete(id);
+      await projectsApi.delete(confirmDialog.projectId);
       setMessage({ text: 'Projeto deletado com sucesso!', type: 'success' });
+      setConfirmDialog({ isOpen: false, projectId: null });
       loadProjects();
     } catch (err) {
       console.error('Erro ao deletar projeto:', err);
       setMessage({ text: 'Erro ao deletar projeto', type: 'error' });
+      setConfirmDialog({ isOpen: false, projectId: null });
     }
+  }
+
+  function handleDeleteCancel() {
+    setConfirmDialog({ isOpen: false, projectId: null });
   }
 
   if (loading) {
@@ -107,6 +121,15 @@ export default function ProjectsWidget() {
 
   return (
     <div className="widget-container">
+      {message && (
+        <Toast
+          message={message.text}
+          type={message.type}
+          onClose={() => setMessage(null)}
+          duration={message.type === 'error' ? 6000 : 3000}
+        />
+      )}
+
       <div className="flex-between mb-2">
         <h2>Projetos</h2>
         <button
@@ -116,22 +139,6 @@ export default function ProjectsWidget() {
           {showForm ? 'Cancelar' : '+ Novo Projeto'}
         </button>
       </div>
-
-      {message && (
-        <div
-          style={{
-            padding: '0.75rem 1rem',
-            marginBottom: '1rem',
-            borderRadius: '4px',
-            backgroundColor: message.type === 'success' ? '#d4edda' : '#f8d7da',
-            color: message.type === 'success' ? '#155724' : '#721c24',
-            border: `1px solid ${message.type === 'success' ? '#c3e6cb' : '#f5c6cb'}`,
-            fontSize: '0.9rem',
-          }}
-        >
-          {message.text}
-        </div>
-      )}
 
       {showForm && (
         <div className="card mb-2">
@@ -219,7 +226,7 @@ export default function ProjectsWidget() {
                     <button onClick={() => startEdit(project)}>Editar</button>
                     <button
                       className="danger"
-                      onClick={() => handleDelete(project.id)}
+                      onClick={() => handleDeleteClick(project.id)}
                     >
                       Deletar
                     </button>
@@ -230,6 +237,15 @@ export default function ProjectsWidget() {
           ))
         )}
       </div>
+
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        message="Tem certeza que deseja deletar este projeto?"
+        onConfirm={handleDeleteConfirm}
+        onCancel={handleDeleteCancel}
+        confirmText="Deletar"
+        cancelText="Cancelar"
+      />
     </div>
   );
 }

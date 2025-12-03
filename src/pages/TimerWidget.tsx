@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 import { projectsApi, type Project } from '../api/projects';
 import { sessionsApi, type CreateSessionData } from '../api/sessions';
 import { settingsApi, type PomodoroSettings } from '../api/settings';
+import ConfirmDialog from '../components/ConfirmDialog';
+import Toast from '../components/Toast';
 import '../App.css';
 
 type TimerMode = 'stopwatch' | 'timer' | 'pomodoro';
@@ -24,6 +26,10 @@ export default function TimerWidget() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' | 'info' } | null>(null);
+  const [confirmDialog, setConfirmDialog] = useState<{ isOpen: boolean; pendingMode: TimerMode | null }>({
+    isOpen: false,
+    pendingMode: null,
+  });
   
   const intervalRef = useRef<number | null>(null);
   
@@ -271,12 +277,14 @@ export default function TimerWidget() {
 
   function handleModeChange(newMode: TimerMode) {
     if (isRunning) {
-      if (!confirm('Tem certeza? A sessão atual será interrompida.')) {
-        return;
-      }
-      handleStop();
+      setConfirmDialog({ isOpen: true, pendingMode: newMode });
+      return;
     }
     
+    applyModeChange(newMode);
+  }
+
+  function applyModeChange(newMode: TimerMode) {
     setMode(newMode);
     setSeconds(0);
     setPomodoroPhase('work');
@@ -289,6 +297,21 @@ export default function TimerWidget() {
     }
   }
 
+  async function handleModeChangeConfirm() {
+    if (confirmDialog.pendingMode) {
+      const pendingMode = confirmDialog.pendingMode;
+      setConfirmDialog({ isOpen: false, pendingMode: null });
+      await handleStop();
+      applyModeChange(pendingMode);
+    } else {
+      setConfirmDialog({ isOpen: false, pendingMode: null });
+    }
+  }
+
+  function handleModeChangeCancel() {
+    setConfirmDialog({ isOpen: false, pendingMode: null });
+  }
+
   if (loading) {
     return <div className="widget-container">Carregando...</div>;
   }
@@ -299,24 +322,16 @@ export default function TimerWidget() {
 
   return (
     <div className="widget-container">
-      <h2 style={{ textAlign: 'center', marginBottom: '16px' }}>Time Tracker</h2>
-      
-      {/* Message notification */}
       {message && (
-        <div
-          style={{
-            padding: '0.75rem 1rem',
-            marginBottom: '1rem',
-            borderRadius: '4px',
-            backgroundColor: message.type === 'success' ? '#d4edda' : message.type === 'error' ? '#f8d7da' : '#d1ecf1',
-            color: message.type === 'success' ? '#155724' : message.type === 'error' ? '#721c24' : '#0c5460',
-            border: `1px solid ${message.type === 'success' ? '#c3e6cb' : message.type === 'error' ? '#f5c6cb' : '#bee5eb'}`,
-            fontSize: '0.9rem',
-          }}
-        >
-          {message.text}
-        </div>
+        <Toast
+          message={message.text}
+          type={message.type}
+          onClose={() => setMessage(null)}
+          duration={message.type === 'error' ? 6000 : 3000}
+        />
       )}
+
+      <h2 style={{ textAlign: 'center', marginBottom: '16px' }}>Time Tracker</h2>
       
       {/* Mode selector */}
       <div className="flex gap-1 mb-2" style={{ width: '100%' }}>
@@ -421,6 +436,15 @@ export default function TimerWidget() {
           />
         </div>
       </div>
+
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        message="Tem certeza? A sessão atual será interrompida."
+        onConfirm={handleModeChangeConfirm}
+        onCancel={handleModeChangeCancel}
+        confirmText="Confirmar"
+        cancelText="Cancelar"
+      />
     </div>
   );
 }
