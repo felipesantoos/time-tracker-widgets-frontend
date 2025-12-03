@@ -7,6 +7,14 @@ export default function ReportsWidget() {
   const [pomodoroReport, setPomodoroReport] = useState<PomodoroReport | null>(null);
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState<'today' | 'week' | 'month'>('today');
+  const [message, setMessage] = useState<{ text: string; type: 'error' } | null>(null);
+
+  useEffect(() => {
+    if (message) {
+      const timer = setTimeout(() => setMessage(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [message]);
 
   useEffect(() => {
     loadReports();
@@ -50,7 +58,7 @@ export default function ReportsWidget() {
       setPomodoroReport(pomodoroRes.data || null);
     } catch (err) {
       console.error('Erro ao carregar relatórios:', err);
-      alert('Erro ao carregar relatórios');
+      setMessage({ text: 'Erro ao carregar relatórios', type: 'error' });
     } finally {
       setLoading(false);
     }
@@ -100,6 +108,22 @@ export default function ReportsWidget() {
           </button>
         </div>
       </div>
+
+      {message && (
+        <div
+          style={{
+            padding: '0.75rem 1rem',
+            marginBottom: '1rem',
+            borderRadius: '4px',
+            backgroundColor: '#f8d7da',
+            color: '#721c24',
+            border: '1px solid #f5c6cb',
+            fontSize: '0.9rem',
+          }}
+        >
+          {message.text}
+        </div>
+      )}
 
       {summary && (
         <>

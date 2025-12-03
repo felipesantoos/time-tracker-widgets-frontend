@@ -11,6 +11,14 @@ export default function ProjectsWidget() {
   const [showForm, setShowForm] = useState(false);
   const [newName, setNewName] = useState('');
   const [newColor, setNewColor] = useState('#007bff');
+  const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
+
+  useEffect(() => {
+    if (message) {
+      const timer = setTimeout(() => setMessage(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [message]);
 
   useEffect(() => {
     loadProjects();
@@ -23,7 +31,7 @@ export default function ProjectsWidget() {
       setProjects(projectsList);
     } catch (err) {
       console.error('Erro ao carregar projetos:', err);
-      alert('Erro ao carregar projetos');
+      setMessage({ text: 'Erro ao carregar projetos', type: 'error' });
       setProjects([]);
     } finally {
       setLoading(false);
@@ -32,7 +40,7 @@ export default function ProjectsWidget() {
 
   async function handleCreate() {
     if (!newName.trim()) {
-      alert('Nome é obrigatório');
+      setMessage({ text: 'Nome é obrigatório', type: 'error' });
       return;
     }
 
@@ -41,10 +49,11 @@ export default function ProjectsWidget() {
       setNewName('');
       setNewColor('#007bff');
       setShowForm(false);
+      setMessage({ text: 'Projeto criado com sucesso!', type: 'success' });
       loadProjects();
     } catch (err) {
       console.error('Erro ao criar projeto:', err);
-      alert('Erro ao criar projeto');
+      setMessage({ text: 'Erro ao criar projeto', type: 'error' });
     }
   }
 
@@ -62,31 +71,33 @@ export default function ProjectsWidget() {
 
   async function handleUpdate(id: string) {
     if (!editName.trim()) {
-      alert('Nome é obrigatório');
+      setMessage({ text: 'Nome é obrigatório', type: 'error' });
       return;
     }
 
     try {
       await projectsApi.update(id, { name: editName, color: editColor });
       cancelEdit();
+      setMessage({ text: 'Projeto atualizado com sucesso!', type: 'success' });
       loadProjects();
     } catch (err) {
       console.error('Erro ao atualizar projeto:', err);
-      alert('Erro ao atualizar projeto');
+      setMessage({ text: 'Erro ao atualizar projeto', type: 'error' });
     }
   }
 
   async function handleDelete(id: string) {
-    if (!confirm('Tem certeza que deseja deletar este projeto?')) {
+    if (!window.confirm('Tem certeza que deseja deletar este projeto?')) {
       return;
     }
 
     try {
       await projectsApi.delete(id);
+      setMessage({ text: 'Projeto deletado com sucesso!', type: 'success' });
       loadProjects();
     } catch (err) {
       console.error('Erro ao deletar projeto:', err);
-      alert('Erro ao deletar projeto');
+      setMessage({ text: 'Erro ao deletar projeto', type: 'error' });
     }
   }
 
@@ -105,6 +116,22 @@ export default function ProjectsWidget() {
           {showForm ? 'Cancelar' : '+ Novo Projeto'}
         </button>
       </div>
+
+      {message && (
+        <div
+          style={{
+            padding: '0.75rem 1rem',
+            marginBottom: '1rem',
+            borderRadius: '4px',
+            backgroundColor: message.type === 'success' ? '#d4edda' : '#f8d7da',
+            color: message.type === 'success' ? '#155724' : '#721c24',
+            border: `1px solid ${message.type === 'success' ? '#c3e6cb' : '#f5c6cb'}`,
+            fontSize: '0.9rem',
+          }}
+        >
+          {message.text}
+        </div>
+      )}
 
       {showForm && (
         <div className="card mb-2">

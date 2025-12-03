@@ -10,7 +10,6 @@ type PomodoroPhase = 'work' | 'shortBreak' | 'longBreak';
 export default function TimerWidget() {
   const [mode, setMode] = useState<TimerMode>('stopwatch');
   const [isRunning, setIsRunning] = useState(false);
-  const [isPaused, setIsPaused] = useState(false);
   const [seconds, setSeconds] = useState(0);
   const [targetSeconds, setTargetSeconds] = useState(0);
   const [startTime, setStartTime] = useState<Date | null>(null);
@@ -24,8 +23,17 @@ export default function TimerWidget() {
   
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
+  const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' | 'info' } | null>(null);
   
   const intervalRef = useRef<number | null>(null);
+  
+  // Auto-hide message after 3 seconds
+  useEffect(() => {
+    if (message) {
+      const timer = setTimeout(() => setMessage(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [message]);
 
   // Carregar projetos e settings
   useEffect(() => {
@@ -56,7 +64,7 @@ export default function TimerWidget() {
 
   // Timer logic
   useEffect(() => {
-    if (isRunning && !isPaused) {
+    if (isRunning) {
       intervalRef.current = window.setInterval(() => {
         setSeconds((prev) => {
           const newSeconds = prev + 1;
@@ -90,7 +98,7 @@ export default function TimerWidget() {
         clearInterval(intervalRef.current);
       }
     };
-  }, [isRunning, isPaused, mode, targetSeconds]);
+  }, [isRunning, mode, targetSeconds]);
 
   function getPomodoroTarget(): number {
     if (!pomodoroSettings) return 0;
@@ -117,13 +125,12 @@ export default function TimerWidget() {
 
   function handleStart() {
     if (mode === 'timer' && targetSeconds === 0) {
-      alert('Defina um tempo para o timer');
+      setMessage({ text: 'Defina um tempo para o timer', type: 'error' });
       return;
     }
 
     setStartTime(new Date());
     setIsRunning(true);
-    setIsPaused(false);
     
     if (mode === 'stopwatch') {
       setSeconds(0);
@@ -134,19 +141,21 @@ export default function TimerWidget() {
     }
   }
 
-  function handlePause() {
-    setIsPaused(true);
-  }
-
-  function handleResume() {
-    setIsPaused(false);
-  }
 
   async function handleStop() {
     if (!startTime) {
       console.warn('Não é possível salvar: startTime ausente');
-      alert('Erro: Tempo de início não encontrado');
+      setMessage({ text: 'Erro: Tempo de início não encontrado', type: 'error' });
       return;
+    }
+    
+    // Parar o timer primeiro
+    setIsRunning(false);
+    
+    // Limpar o interval imediatamente
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
     }
     
     const endTime = new Date();
@@ -154,7 +163,11 @@ export default function TimerWidget() {
     
     if (duration <= 0) {
       console.warn('Duração inválida:', duration);
-      alert('A sessão precisa ter duração maior que zero');
+      setMessage({ text: 'A sessão precisa ter duração maior que zero', type: 'error' });
+      // Resetar mesmo se a duração for inválida
+      setSeconds(0);
+      setStartTime(null);
+      setDescription('');
       return;
     }
     
@@ -181,24 +194,25 @@ export default function TimerWidget() {
       
       console.log('Enviando sessão:', sessionData);
       await sessionsApi.create(sessionData);
-      alert('Sessão salva com sucesso!');
+      setMessage({ text: 'Sessão salva com sucesso!', type: 'success' });
       
       // Resetar estado
-      setIsRunning(false);
-      setIsPaused(false);
       setSeconds(0);
       setStartTime(null);
       setDescription('');
     } catch (err) {
       console.error('Erro ao salvar sessão:', err);
       const errorMessage = err instanceof Error ? err.message : 'Erro ao salvar sessão';
-      alert(errorMessage);
+      setMessage({ text: errorMessage, type: 'error' });
+      // Resetar mesmo em caso de erro
+      setSeconds(0);
+      setStartTime(null);
+      setDescription('');
     }
   }
 
   function handlePomodoroComplete() {
     setIsRunning(false);
-    setIsPaused(false);
     
     // Salvar sessão de trabalho
     if (pomodoroPhase === 'work' && startTime) {
@@ -289,6 +303,23 @@ export default function TimerWidget() {
     <div className="widget-container">
       <h2 style={{ textAlign: 'center', marginBottom: '16px' }}>Time Tracker</h2>
       
+      {/* Message notification */}
+      {message && (
+        <div
+          style={{
+            padding: '0.75rem 1rem',
+            marginBottom: '1rem',
+            borderRadius: '4px',
+            backgroundColor: message.type === 'success' ? '#d4edda' : message.type === 'error' ? '#f8d7da' : '#d1ecf1',
+            color: message.type === 'success' ? '#155724' : message.type === 'error' ? '#721c24' : '#0c5460',
+            border: `1px solid ${message.type === 'success' ? '#c3e6cb' : message.type === 'error' ? '#f5c6cb' : '#bee5eb'}`,
+            fontSize: '0.9rem',
+          }}
+        >
+          {message.text}
+        </div>
+      )}
+      
       {/* Mode selector */}
       <div className="flex gap-1 mb-2" style={{ width: '100%' }}>
         <button
@@ -354,15 +385,8 @@ export default function TimerWidget() {
           <button className="primary" onClick={handleStart} style={{ flex: 1, width: '100%' }}>
             Iniciar
           </button>
-        ) : isPaused ? (
-          <button className="primary" onClick={handleResume} style={{ flex: 1 }}>
-            Retomar
-          </button>
         ) : (
-          <button onClick={handlePause} style={{ flex: 1 }}>Pausar</button>
-        )}
-        {isRunning && (
-          <button className="danger" onClick={handleStop} style={{ flex: 1 }}>
+          <button className="danger" onClick={handleStop} style={{ flex: 1, width: '100%' }}>
             Parar
           </button>
         )}

@@ -12,6 +12,14 @@ export default function SessionsWidget() {
   const [filterTo, setFilterTo] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editDescription, setEditDescription] = useState('');
+  const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
+
+  useEffect(() => {
+    if (message) {
+      const timer = setTimeout(() => setMessage(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [message]);
 
   useEffect(() => {
     loadProjects();
@@ -42,7 +50,7 @@ export default function SessionsWidget() {
       setSessions(sessionsList);
     } catch (err) {
       console.error('Erro ao carregar sessões:', err);
-      alert('Erro ao carregar sessões');
+      setMessage({ text: 'Erro ao carregar sessões', type: 'error' });
       setSessions([]);
     } finally {
       setLoading(false);
@@ -108,6 +116,22 @@ export default function SessionsWidget() {
   return (
     <div className="widget-container">
       <h2>Sessões</h2>
+
+      {message && (
+        <div
+          style={{
+            padding: '0.75rem 1rem',
+            marginBottom: '1rem',
+            borderRadius: '4px',
+            backgroundColor: message.type === 'success' ? '#d4edda' : '#f8d7da',
+            color: message.type === 'success' ? '#155724' : '#721c24',
+            border: `1px solid ${message.type === 'success' ? '#c3e6cb' : '#f5c6cb'}`,
+            fontSize: '0.9rem',
+          }}
+        >
+          {message.text}
+        </div>
+      )}
 
       {/* Filters */}
       <div className="card mb-2">

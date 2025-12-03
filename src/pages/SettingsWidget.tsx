@@ -6,12 +6,20 @@ export default function SettingsWidget() {
   const [settings, setSettings] = useState<PomodoroSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
   
   const [workMinutes, setWorkMinutes] = useState(25);
   const [shortBreakMinutes, setShortBreakMinutes] = useState(5);
   const [longBreakMinutes, setLongBreakMinutes] = useState(15);
   const [longBreakInterval, setLongBreakInterval] = useState(4);
   const [autoStartBreak, setAutoStartBreak] = useState(false);
+
+  useEffect(() => {
+    if (message) {
+      const timer = setTimeout(() => setMessage(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [message]);
 
   useEffect(() => {
     loadSettings();
@@ -31,7 +39,7 @@ export default function SettingsWidget() {
       }
     } catch (err) {
       console.error('Erro ao carregar configurações:', err);
-      alert('Erro ao carregar configurações');
+      setMessage({ text: 'Erro ao carregar configurações', type: 'error' });
     } finally {
       setLoading(false);
     }
@@ -47,11 +55,11 @@ export default function SettingsWidget() {
         longBreakInterval,
         autoStartBreak,
       });
-      alert('Configurações salvas com sucesso!');
+      setMessage({ text: 'Configurações salvas com sucesso!', type: 'success' });
       loadSettings();
     } catch (err) {
       console.error('Erro ao salvar configurações:', err);
-      alert('Erro ao salvar configurações');
+      setMessage({ text: 'Erro ao salvar configurações', type: 'error' });
     } finally {
       setSaving(false);
     }
@@ -64,6 +72,22 @@ export default function SettingsWidget() {
   return (
     <div className="widget-container">
       <h2>Configurações do Pomodoro</h2>
+
+      {message && (
+        <div
+          style={{
+            padding: '0.75rem 1rem',
+            marginBottom: '1rem',
+            borderRadius: '4px',
+            backgroundColor: message.type === 'success' ? '#d4edda' : '#f8d7da',
+            color: message.type === 'success' ? '#155724' : '#721c24',
+            border: `1px solid ${message.type === 'success' ? '#c3e6cb' : '#f5c6cb'}`,
+            fontSize: '0.9rem',
+          }}
+        >
+          {message.text}
+        </div>
+      )}
 
       <div className="card">
         <div className="mb-1">
