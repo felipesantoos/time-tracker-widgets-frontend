@@ -1,13 +1,16 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { reportsApi, type ReportSummary, type PomodoroReport } from '../api/reports';
+import { useActiveSession } from '../contexts/ActiveSessionContext';
 import '../App.css';
 
 export default function ReportsWidget() {
+  const { activeSession } = useActiveSession();
   const [summary, setSummary] = useState<ReportSummary | null>(null);
   const [pomodoroReport, setPomodoroReport] = useState<PomodoroReport | null>(null);
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState<'today' | 'week' | 'month'>('today');
   const [message, setMessage] = useState<{ text: string; type: 'error' } | null>(null);
+  const previousActiveSessionRef = useRef<typeof activeSession>(null);
 
   useEffect(() => {
     if (message) {
@@ -19,6 +22,23 @@ export default function ReportsWidget() {
   useEffect(() => {
     loadReports();
   }, [period]);
+
+  // Recarregar relatórios quando uma sessão ativa for finalizada (detectado via SSE)
+  useEffect(() => {
+    // Verificar se havia uma sessão ativa antes e agora não há mais
+    const hadActiveSession = previousActiveSessionRef.current !== null;
+    const hasActiveSessionNow = activeSession !== null;
+
+    // Se havia sessão ativa e agora não há, significa que foi finalizada
+    if (hadActiveSession && !hasActiveSessionNow) {
+      console.log('Sessão ativa finalizada detectada via SSE, recarregando relatórios...');
+      loadReports();
+    }
+
+    // Atualizar referência para próxima verificação
+    previousActiveSessionRef.current = activeSession;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeSession]);
 
   function getDateRange(period: 'today' | 'week' | 'month') {
     const today = new Date();
