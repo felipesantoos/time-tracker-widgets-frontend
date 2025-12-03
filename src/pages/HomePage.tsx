@@ -9,6 +9,7 @@ const WIDGETS = [
   { path: '/reports', name: 'Relatórios', icon: '📈' },
   { path: '/column-chart', name: 'Gráfico de Colunas', icon: '📊' },
   { path: '/row-chart', name: 'Gráfico de Barras', icon: '📊' },
+  { path: '/pie-chart', name: 'Gráfico de Pizza', icon: '🥧' },
   { path: '/settings', name: 'Configurações', icon: '⚙️' },
 ];
 

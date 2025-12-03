@@ -8,6 +8,7 @@ import SessionsWidget from './pages/SessionsWidget';
 import ReportsWidget from './pages/ReportsWidget';
 import ColumnChartWidget from './pages/ColumnChartWidget';
 import RowChartWidget from './pages/RowChartWidget';
+import PieChartWidget from './pages/PieChartWidget';
 import SettingsWidget from './pages/SettingsWidget';
 import HomePage from './pages/HomePage';
 import './App.css';
@@ -86,6 +87,14 @@ function App() {
               element={
                 <AuthGuard>
                   <RowChartWidget />
+                </AuthGuard>
+              }
+            />
+            <Route
+              path="/pie-chart"
+              element={
+                <AuthGuard>
+                  <PieChartWidget />
                 </AuthGuard>
               }
             />
