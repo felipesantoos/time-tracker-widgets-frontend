@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { settingsApi, type PomodoroSettings } from '../api/settings';
+import { settingsApi } from '../api/settings';
 import '../App.css';
 
 export default function SettingsWidget() {
