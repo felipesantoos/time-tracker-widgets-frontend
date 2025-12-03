@@ -88,7 +88,7 @@ export default function ReportsWidget() {
   }
 
   return (
-    <div className="widget-container with-timer-space" style={{ display: 'flex', flexDirection: 'column' }}>
+    <div className="widget-container with-timer-space">
       <div className="flex mb-1" style={{ alignItems: 'center', gap: '0.5rem' }}>
         <h2 className="widget-title" style={{ fontSize: '1rem', marginBottom: 0 }}>Relatórios</h2>
         <button
@@ -102,6 +102,31 @@ export default function ReportsWidget() {
             <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path>
             <path d="M3 21v-5h5"></path>
           </svg>
+        </button>
+      </div>
+
+      {/* Period selector tabs */}
+      <div className="flex gap-1 mb-1" style={{ width: '100%' }}>
+        <button
+          onClick={() => setPeriod('today')}
+          className={period === 'today' ? 'primary' : ''}
+          style={{ flex: 1, padding: '0.3rem 0.5rem', fontSize: '0.75rem' }}
+        >
+          Hoje
+        </button>
+        <button
+          onClick={() => setPeriod('week')}
+          className={period === 'week' ? 'primary' : ''}
+          style={{ flex: 1, padding: '0.3rem 0.5rem', fontSize: '0.75rem' }}
+        >
+          Semana
+        </button>
+        <button
+          onClick={() => setPeriod('month')}
+          className={period === 'month' ? 'primary' : ''}
+          style={{ flex: 1, padding: '0.3rem 0.5rem', fontSize: '0.75rem' }}
+        >
+          Mês
         </button>
       </div>
 
@@ -226,31 +251,6 @@ export default function ReportsWidget() {
           )}
         </div>
       )}
-
-      {/* Period selector tabs at bottom */}
-      <div className="flex gap-1 mt-auto" style={{ width: '100%', marginTop: 'auto', paddingTop: '0.5rem' }}>
-        <button
-          onClick={() => setPeriod('today')}
-          className={period === 'today' ? 'primary' : ''}
-          style={{ flex: 1, padding: '0.3rem 0.5rem', fontSize: '0.75rem' }}
-        >
-          Hoje
-        </button>
-        <button
-          onClick={() => setPeriod('week')}
-          className={period === 'week' ? 'primary' : ''}
-          style={{ flex: 1, padding: '0.3rem 0.5rem', fontSize: '0.75rem' }}
-        >
-          Semana
-        </button>
-        <button
-          onClick={() => setPeriod('month')}
-          className={period === 'month' ? 'primary' : ''}
-          style={{ flex: 1, padding: '0.3rem 0.5rem', fontSize: '0.75rem' }}
-        >
-          Mês
-        </button>
-      </div>
     </div>
   );
 }

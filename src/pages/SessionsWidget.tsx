@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { sessionsApi, type TimeSession } from '../api/sessions';
 import { projectsApi, type Project } from '../api/projects';
+import { useActiveSession } from '../contexts/ActiveSessionContext';
 import ConfirmDialog from '../components/ConfirmDialog';
 import Toast from '../components/Toast';
 import Modal from '../components/Modal';
@@ -8,6 +9,7 @@ import { formatDateToLocal, utcToLocalDatetime, localDatetimeToUtc } from '../ut
 import '../App.css';
 
 export default function SessionsWidget() {
+  const { activeSession } = useActiveSession();
   const [sessions, setSessions] = useState<TimeSession[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
@@ -33,6 +35,7 @@ export default function SessionsWidget() {
   });
   
   const ITEMS_PER_PAGE = 10;
+  const previousActiveSessionRef = useRef<typeof activeSession>(null);
 
   useEffect(() => {
     if (message) {
@@ -53,6 +56,24 @@ export default function SessionsWidget() {
   useEffect(() => {
     loadSessions();
   }, [filterProjectId, filterFrom, filterTo, currentPage]);
+
+  // Recarregar sessões quando uma sessão ativa for finalizada (detectado via SSE)
+  useEffect(() => {
+    // Verificar se havia uma sessão ativa antes e agora não há mais
+    const hadActiveSession = previousActiveSessionRef.current !== null;
+    const hasActiveSessionNow = activeSession !== null;
+
+    // Se havia sessão ativa e agora não há, significa que foi finalizada
+    if (hadActiveSession && !hasActiveSessionNow) {
+      console.log('Sessão ativa finalizada detectada via SSE, recarregando lista de sessões...');
+      // Recarregar sessões usando os filtros atuais
+      loadSessions();
+    }
+
+    // Atualizar referência para próxima verificação
+    previousActiveSessionRef.current = activeSession;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeSession]);
 
   async function loadProjects() {
     try {
