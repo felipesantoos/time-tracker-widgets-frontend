@@ -132,6 +132,10 @@ select:focus {
   grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
 }
 
+.grid-3 {
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+}
+
 /* Utilitários */
 .mt-1 { margin-top: 0.4rem; }
 .mt-2 { margin-top: 0.75rem; }

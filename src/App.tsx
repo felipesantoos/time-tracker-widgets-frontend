@@ -6,6 +6,7 @@ import TimerWidget from './pages/TimerWidget';
 import ProjectsWidget from './pages/ProjectsWidget';
 import SessionsWidget from './pages/SessionsWidget';
 import ReportsWidget from './pages/ReportsWidget';
+import ColumnChartWidget from './pages/ColumnChartWidget';
 import SettingsWidget from './pages/SettingsWidget';
 import HomePage from './pages/HomePage';
 import './App.css';
@@ -68,6 +69,14 @@ function App() {
               element={
                 <AuthGuard>
                   <ReportsWidget />
+                </AuthGuard>
+              }
+            />
+            <Route
+              path="/column-chart"
+              element={
+                <AuthGuard>
+                  <ColumnChartWidget />
                 </AuthGuard>
               }
             />

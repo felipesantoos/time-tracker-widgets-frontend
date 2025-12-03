@@ -7,6 +7,7 @@ const WIDGETS = [
   { path: '/projects', name: 'Projetos', icon: '📁' },
   { path: '/sessions', name: 'Sessões', icon: '📊' },
   { path: '/reports', name: 'Relatórios', icon: '📈' },
+  { path: '/column-chart', name: 'Gráfico de Colunas', icon: '📊' },
   { path: '/settings', name: 'Configurações', icon: '⚙️' },
 ];
 

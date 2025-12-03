@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { reportsApi, type ReportSummary, type PomodoroReport } from '../api/reports';
 import { useActiveSession } from '../contexts/ActiveSessionContext';
 import '../App.css';
 
-export default function ReportsWidget() {
+export default function ColumnChartWidget() {
   const { activeSession } = useActiveSession();
   const [summary, setSummary] = useState<ReportSummary | null>(null);
   const [pomodoroReport, setPomodoroReport] = useState<PomodoroReport | null>(null);
@@ -25,17 +26,14 @@ export default function ReportsWidget() {
 
   // Recarregar relatórios quando uma sessão ativa for finalizada (detectado via SSE)
   useEffect(() => {
-    // Verificar se havia uma sessão ativa antes e agora não há mais
     const hadActiveSession = previousActiveSessionRef.current !== null;
     const hasActiveSessionNow = activeSession !== null;
 
-    // Se havia sessão ativa e agora não há, significa que foi finalizada
     if (hadActiveSession && !hasActiveSessionNow) {
       console.log('Sessão ativa finalizada detectada via SSE, recarregando relatórios...');
       loadReports();
     }
 
-    // Atualizar referência para próxima verificação
     previousActiveSessionRef.current = activeSession;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeSession]);
@@ -103,6 +101,73 @@ export default function ReportsWidget() {
     await loadReports();
   }
 
+  // Preparar dados para o gráfico de tempo por projeto
+  const timeByProjectData = summary?.byProject?.map(item => ({
+    name: item.project?.name || 'Sem Projeto',
+    hours: parseFloat(formatHours(item.totalSeconds)),
+    totalSeconds: item.totalSeconds,
+    sessionCount: item.sessionCount,
+    color: item.project?.color || '#999999',
+  })) || [];
+
+  // Preparar dados para o gráfico de pomodoros por projeto
+  const pomodoroByProjectData = pomodoroReport?.byProject?.map(item => ({
+    name: item.project?.name || 'Sem Projeto',
+    count: item.count,
+    color: item.project?.color || '#999999',
+  })) || [];
+
+  // Custom tooltip para tempo por projeto
+  const TimeTooltip = ({ active, payload }: any) => {
+    if (active && payload && payload.length) {
+      const data = payload[0].payload;
+      return (
+        <div
+          style={{
+            backgroundColor: '#fff',
+            border: '1px solid #ccc',
+            borderRadius: '4px',
+            padding: '0.5rem',
+            boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+          }}
+        >
+          <p style={{ margin: 0, fontWeight: 'bold', fontSize: '0.85rem' }}>{data.name}</p>
+          <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.8rem' }}>
+            {formatDuration(data.totalSeconds)} ({data.hours}h)
+          </p>
+          <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.75rem', color: '#666' }}>
+            {data.sessionCount} sessões
+          </p>
+        </div>
+      );
+    }
+    return null;
+  };
+
+  // Custom tooltip para pomodoros
+  const PomodoroTooltip = ({ active, payload }: any) => {
+    if (active && payload && payload.length) {
+      const data = payload[0].payload;
+      return (
+        <div
+          style={{
+            backgroundColor: '#fff',
+            border: '1px solid #ccc',
+            borderRadius: '4px',
+            padding: '0.5rem',
+            boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+          }}
+        >
+          <p style={{ margin: 0, fontWeight: 'bold', fontSize: '0.85rem' }}>{data.name}</p>
+          <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.8rem' }}>
+            {data.count} pomodoro{data.count !== 1 ? 's' : ''}
+          </p>
+        </div>
+      );
+    }
+    return null;
+  };
+
   if (loading) {
     return <div className="widget-container with-timer-space">Carregando...</div>;
   }
@@ -110,7 +175,7 @@ export default function ReportsWidget() {
   return (
     <div className="widget-container with-timer-space">
       <div className="flex mb-1" style={{ alignItems: 'center', gap: '0.5rem' }}>
-        <h2 className="widget-title" style={{ fontSize: '1rem', marginBottom: 0 }}>Relatórios</h2>
+        <h2 className="widget-title" style={{ fontSize: '1rem', marginBottom: 0 }}>Gráfico de Colunas</h2>
         <button
           onClick={handleRefresh}
           title="Atualizar"
@@ -195,51 +260,68 @@ export default function ReportsWidget() {
             )}
           </div>
 
-          {/* By project */}
+          {/* Tempo por Projeto - Gráfico de Colunas */}
           <div className="card mb-1" style={{ padding: '0.5rem' }}>
             <h3 style={{ fontSize: '0.85rem', marginBottom: '0.5rem', marginTop: 0 }}>Tempo por Projeto</h3>
-            {!summary?.byProject || summary.byProject.length === 0 ? (
+            {timeByProjectData.length === 0 ? (
               <p style={{ fontSize: '0.75rem', margin: 0 }}>Nenhum dado no período selecionado.</p>
             ) : (
-              <div>
-                {summary.byProject.map((item, index) => (
-                  <div
-                    key={item.project.id}
-                    className="flex-between"
-                    style={{
-                      padding: '0.4rem 0',
-                      borderBottom: index < summary.byProject.length - 1 ? '1px solid #eee' : 'none',
-                      marginBottom: index < summary.byProject.length - 1 ? '0.25rem' : '0',
-                    }}
-                  >
-                    <div className="flex gap-1" style={{ alignItems: 'center', flex: 1, minWidth: 0 }}>
-                      {item.project && (
-                        <div
-                          style={{
-                            width: '12px',
-                            height: '12px',
-                            borderRadius: '3px',
-                            backgroundColor: item.project.color || '#999999',
-                            flexShrink: 0,
-                          }}
-                        />
-                      )}
-                      <span style={{ fontSize: '0.8rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.project?.name || 'Sem Projeto'}</span>
-                    </div>
-                    <div style={{ textAlign: 'right', flexShrink: 0, marginLeft: '0.5rem' }}>
-                      <div style={{ fontWeight: 'bold', fontSize: '0.85rem' }}>
-                        {formatHours(item.totalSeconds)}h
-                      </div>
-                      <div style={{ fontSize: '0.7rem', color: '#666' }}>
-                        {item.sessionCount} sessões
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
+              <ResponsiveContainer width="100%" height={250}>
+                <BarChart data={timeByProjectData} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
+                  <XAxis
+                    dataKey="name"
+                    angle={-45}
+                    textAnchor="end"
+                    height={80}
+                    interval={0}
+                    tick={{ fontSize: 10 }}
+                  />
+                  <YAxis
+                    label={{ value: 'Horas', angle: -90, position: 'insideLeft', style: { fontSize: 12 } }}
+                    tick={{ fontSize: 10 }}
+                  />
+                  <Tooltip content={<TimeTooltip />} />
+                  <Bar dataKey="hours" radius={[4, 4, 0, 0]}>
+                    {timeByProjectData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
             )}
           </div>
         </>
+      )}
+
+      {/* Pomodoros por Projeto - Gráfico de Colunas */}
+      {pomodoroReport && pomodoroReport.byProject && pomodoroReport.byProject.length > 0 && (
+        <div className="card" style={{ padding: '0.5rem' }}>
+          <h3 style={{ fontSize: '0.85rem', marginBottom: '0.5rem', marginTop: 0 }}>
+            Pomodoros por Projeto
+          </h3>
+          <ResponsiveContainer width="100%" height={250}>
+            <BarChart data={pomodoroByProjectData} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
+              <XAxis
+                dataKey="name"
+                angle={-45}
+                textAnchor="end"
+                height={80}
+                interval={0}
+                tick={{ fontSize: 10 }}
+              />
+              <YAxis
+                label={{ value: 'Pomodoros', angle: -90, position: 'insideLeft', style: { fontSize: 12 } }}
+                tick={{ fontSize: 10 }}
+              />
+              <Tooltip content={<PomodoroTooltip />} />
+              <Bar dataKey="count" radius={[4, 4, 0, 0]}>
+                {pomodoroByProjectData.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={entry.color} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
       )}
     </div>
   );
