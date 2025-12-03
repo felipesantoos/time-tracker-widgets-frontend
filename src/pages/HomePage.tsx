@@ -101,7 +101,7 @@ export default function HomePage() {
         </div>
       )}
 
-      <div style={{ display: 'grid', gap: '0.5rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '0.5rem' }}>
         {WIDGETS.map((widget) => (
           <div key={widget.path} className="card" style={{ padding: '0.5rem' }}>
             <div className="flex-between gap-1" style={{ alignItems: 'center' }}>
