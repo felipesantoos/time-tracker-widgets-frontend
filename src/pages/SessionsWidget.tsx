@@ -10,12 +10,21 @@ export default function SessionsWidget() {
   const [filterProjectId, setFilterProjectId] = useState<string>('');
   const [filterFrom, setFilterFrom] = useState('');
   const [filterTo, setFilterTo] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pagination, setPagination] = useState<{
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  } | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editDescription, setEditDescription] = useState('');
   const [editProjectId, setEditProjectId] = useState<string>('');
   const [editStartTime, setEditStartTime] = useState<string>('');
   const [editEndTime, setEditEndTime] = useState<string>('');
   const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
+  
+  const ITEMS_PER_PAGE = 20;
 
   useEffect(() => {
     if (message) {
@@ -26,8 +35,16 @@ export default function SessionsWidget() {
 
   useEffect(() => {
     loadProjects();
-    loadSessions();
+  }, []);
+
+  useEffect(() => {
+    // Resetar para página 1 quando os filtros mudarem
+    setCurrentPage(1);
   }, [filterProjectId, filterFrom, filterTo]);
+
+  useEffect(() => {
+    loadSessions();
+  }, [filterProjectId, filterFrom, filterTo, currentPage]);
 
   async function loadProjects() {
     try {
@@ -47,14 +64,21 @@ export default function SessionsWidget() {
         projectId: filterProjectId || undefined,
         from: filterFrom || undefined,
         to: filterTo || undefined,
-        limit: 100,
+        page: currentPage,
+        limit: ITEMS_PER_PAGE,
       });
       const sessionsList = res.data || [];
       setSessions(sessionsList);
+      
+      // Atualizar informações de paginação
+      if (res.pagination) {
+        setPagination(res.pagination);
+      }
     } catch (err) {
       console.error('Erro ao carregar sessões:', err);
       setMessage({ text: 'Erro ao carregar sessões', type: 'error' });
       setSessions([]);
+      setPagination(null);
     } finally {
       setLoading(false);
     }
@@ -216,120 +240,165 @@ export default function SessionsWidget() {
           <p>Nenhuma sessão encontrada.</p>
         </div>
       ) : (
-        <div>
-          {sessions.map((session) => (
-            <div key={session.id} className="card mb-1">
-              {editingId === session.id ? (
-                <div>
-                  <div className="mb-1">
-                    <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.9rem' }}>
-                      Projeto:
-                    </label>
-                    <select
-                      value={editProjectId}
-                      onChange={(e) => setEditProjectId(e.target.value)}
-                      style={{ width: '100%', marginBottom: '0.75rem' }}
-                    >
-                      <option value="">Sem projeto</option>
-                      {projects.map((p) => (
-                        <option key={p.id} value={p.id}>
-                          {p.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="mb-1">
-                    <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.9rem' }}>
-                      Início:
-                    </label>
-                    <input
-                      type="datetime-local"
-                      value={editStartTime}
-                      onChange={(e) => setEditStartTime(e.target.value)}
-                      style={{ width: '100%', marginBottom: '0.75rem' }}
-                    />
-                  </div>
-                  <div className="mb-1">
-                    <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.9rem' }}>
-                      Término:
-                    </label>
-                    <input
-                      type="datetime-local"
-                      value={editEndTime}
-                      onChange={(e) => setEditEndTime(e.target.value)}
-                      style={{ width: '100%', marginBottom: '0.75rem' }}
-                    />
-                  </div>
-                  <div className="mb-1">
-                    <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.9rem' }}>
-                      Descrição:
-                    </label>
-                    <textarea
-                      value={editDescription}
-                      onChange={(e) => setEditDescription(e.target.value)}
-                      placeholder="Descrição"
-                      rows={2}
-                      style={{ width: '100%', marginBottom: '0.75rem' }}
-                    />
-                  </div>
-                  <div className="flex gap-1">
-                    <button
-                      className="primary"
-                      onClick={() => handleUpdate(session.id)}
-                    >
-                      Salvar
-                    </button>
-                    <button onClick={cancelEdit}>Cancelar</button>
-                  </div>
-                </div>
-              ) : (
-                <div>
-                  <div className="flex-between mb-1 gap-1">
-                    <div className="flex gap-1" style={{ alignItems: 'center' }}>
-                      {session.project ? (
-                        <>
-                          <div
-                            style={{
-                              width: '16px',
-                              height: '16px',
-                              borderRadius: '4px',
-                              backgroundColor: session.project.color,
-                            }}
-                          />
-                          <strong>{session.project.name}</strong>
-                        </>
-                      ) : (
-                        <strong style={{ color: '#999' }}>Sem projeto</strong>
-                      )}
-                      <span style={{ fontSize: '0.85rem', color: '#666' }}>
-                        {formatDate(session.startTime)}
-                      </span>
+        <>
+          <div>
+            {sessions.map((session) => (
+              <div key={session.id} className="card mb-1">
+                {editingId === session.id ? (
+                  <div>
+                    <div className="mb-1">
+                      <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.9rem' }}>
+                        Projeto:
+                      </label>
+                      <select
+                        value={editProjectId}
+                        onChange={(e) => setEditProjectId(e.target.value)}
+                        style={{ width: '100%', marginBottom: '0.75rem' }}
+                      >
+                        <option value="">Sem projeto</option>
+                        {projects.map((p) => (
+                          <option key={p.id} value={p.id}>
+                            {p.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="mb-1">
+                      <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.9rem' }}>
+                        Início:
+                      </label>
+                      <input
+                        type="datetime-local"
+                        value={editStartTime}
+                        onChange={(e) => setEditStartTime(e.target.value)}
+                        style={{ width: '100%', marginBottom: '0.75rem' }}
+                      />
+                    </div>
+                    <div className="mb-1">
+                      <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.9rem' }}>
+                        Término:
+                      </label>
+                      <input
+                        type="datetime-local"
+                        value={editEndTime}
+                        onChange={(e) => setEditEndTime(e.target.value)}
+                        style={{ width: '100%', marginBottom: '0.75rem' }}
+                      />
+                    </div>
+                    <div className="mb-1">
+                      <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.9rem' }}>
+                        Descrição:
+                      </label>
+                      <textarea
+                        value={editDescription}
+                        onChange={(e) => setEditDescription(e.target.value)}
+                        placeholder="Descrição"
+                        rows={2}
+                        style={{ width: '100%', marginBottom: '0.75rem' }}
+                      />
                     </div>
                     <div className="flex gap-1">
-                      <button onClick={() => startEdit(session)}>Editar</button>
                       <button
-                        className="danger"
-                        onClick={() => handleDelete(session.id)}
+                        className="primary"
+                        onClick={() => handleUpdate(session.id)}
                       >
-                        Deletar
+                        Salvar
                       </button>
+                      <button onClick={cancelEdit}>Cancelar</button>
                     </div>
                   </div>
-                  {session.description && (
-                    <p style={{ fontSize: '0.9rem', color: '#666', marginBottom: '0.5rem' }}>
-                      {session.description}
-                    </p>
-                  )}
-                  <div style={{ fontSize: '0.85rem', color: '#666' }}>
-                    <span>
-                      {formatDuration(session.durationSeconds)} • {session.mode}
-                    </span>
+                ) : (
+                  <div>
+                    <div className="flex-between mb-1 gap-1">
+                      <div className="flex gap-1" style={{ alignItems: 'center' }}>
+                        {session.project ? (
+                          <>
+                            <div
+                              style={{
+                                width: '16px',
+                                height: '16px',
+                                borderRadius: '4px',
+                                backgroundColor: session.project.color,
+                              }}
+                            />
+                            <strong>{session.project.name}</strong>
+                          </>
+                        ) : (
+                          <strong style={{ color: '#999' }}>Sem projeto</strong>
+                        )}
+                        <span style={{ fontSize: '0.85rem', color: '#666' }}>
+                          {formatDate(session.startTime)}
+                        </span>
+                      </div>
+                      <div className="flex gap-1">
+                        <button onClick={() => startEdit(session)}>Editar</button>
+                        <button
+                          className="danger"
+                          onClick={() => handleDelete(session.id)}
+                        >
+                          Deletar
+                        </button>
+                      </div>
+                    </div>
+                    {session.description && (
+                      <p style={{ fontSize: '0.9rem', color: '#666', marginBottom: '0.5rem' }}>
+                        {session.description}
+                      </p>
+                    )}
+                    <div style={{ fontSize: '0.85rem', color: '#666' }}>
+                      <span>
+                        {formatDuration(session.durationSeconds)} • {session.mode}
+                      </span>
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
+            ))}
+          </div>
+          
+          {/* Pagination Controls */}
+          {pagination && pagination.totalPages > 1 && (
+            <div className="card mt-2" style={{ 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'center',
+              padding: '1rem',
+              flexWrap: 'wrap',
+              gap: '0.5rem'
+            }}>
+              <div style={{ fontSize: '0.9rem', color: '#666' }}>
+                Mostrando {((currentPage - 1) * ITEMS_PER_PAGE) + 1} - {Math.min(currentPage * ITEMS_PER_PAGE, pagination.total)} de {pagination.total} sessões
+              </div>
+              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                <button
+                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                  disabled={currentPage === 1}
+                  style={{
+                    padding: '0.5rem 1rem',
+                    cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
+                    opacity: currentPage === 1 ? 0.5 : 1,
+                  }}
+                >
+                  Anterior
+                </button>
+                <span style={{ fontSize: '0.9rem', color: '#666' }}>
+                  Página {currentPage} de {pagination.totalPages}
+                </span>
+                <button
+                  onClick={() => setCurrentPage(prev => Math.min(pagination.totalPages, prev + 1))}
+                  disabled={currentPage === pagination.totalPages}
+                  style={{
+                    padding: '0.5rem 1rem',
+                    cursor: currentPage === pagination.totalPages ? 'not-allowed' : 'pointer',
+                    opacity: currentPage === pagination.totalPages ? 0.5 : 1,
+                  }}
+                >
+                  Próxima
+                </button>
+              </div>
             </div>
-          ))}
-        </div>
+          )}
+        </>
       )}
     </div>
   );

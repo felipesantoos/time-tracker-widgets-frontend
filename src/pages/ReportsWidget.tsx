@@ -85,7 +85,7 @@ export default function ReportsWidget() {
 
   return (
     <div className="widget-container">
-      <div className="flex-between mb-2">
+      <div className="flex-between mb-2 gap-1">
         <h2>Relatórios</h2>
         <div className="flex gap-1">
           <button
@@ -153,22 +153,28 @@ export default function ReportsWidget() {
               <p>Nenhum dado no período selecionado.</p>
             ) : (
               <div>
-                {summary.byProject.map((item) => (
+                {summary.byProject.map((item, index) => (
                   <div
                     key={item.project.id}
-                    className="flex-between mb-1"
-                    style={{ padding: '0.5rem', borderBottom: '1px solid #eee' }}
+                    className="flex-between"
+                    style={{
+                      padding: '0.5rem',
+                      borderBottom: index < summary.byProject.length - 1 ? '1px solid #eee' : 'none',
+                      marginBottom: index < summary.byProject.length - 1 ? '0.25rem' : '0',
+                    }}
                   >
                     <div className="flex gap-1" style={{ alignItems: 'center' }}>
-                      <div
-                        style={{
-                          width: '16px',
-                          height: '16px',
-                          borderRadius: '4px',
-                          backgroundColor: item.project.color,
-                        }}
-                      />
-                      <span>{item.project.name}</span>
+                      {item.project && (
+                        <div
+                          style={{
+                            width: '16px',
+                            height: '16px',
+                            borderRadius: '4px',
+                            backgroundColor: item.project.color || '#999999',
+                          }}
+                        />
+                      )}
+                      <span>{item.project?.name || 'Sem Projeto'}</span>
                     </div>
                     <div style={{ textAlign: 'right' }}>
                       <div style={{ fontWeight: 'bold' }}>
@@ -203,15 +209,17 @@ export default function ReportsWidget() {
                   style={{ padding: '0.5rem' }}
                 >
                   <div className="flex gap-1" style={{ alignItems: 'center' }}>
-                    <div
-                      style={{
-                        width: '16px',
-                        height: '16px',
-                        borderRadius: '4px',
-                        backgroundColor: item.project.color,
-                      }}
-                    />
-                    <span>{item.project.name}</span>
+                    {item.project && (
+                      <div
+                        style={{
+                          width: '16px',
+                          height: '16px',
+                          borderRadius: '4px',
+                          backgroundColor: item.project.color || '#999999',
+                        }}
+                      />
+                    )}
+                    <span>{item.project?.name || 'Sem Projeto'}</span>
                   </div>
                   <span style={{ fontWeight: 'bold' }}>{item.count}</span>
                 </div>
