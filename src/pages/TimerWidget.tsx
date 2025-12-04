@@ -9,15 +9,33 @@ import '../App.css';
 
 type TimerMode = 'stopwatch' | 'timer' | 'pomodoro';
 type PomodoroPhase = 'work' | 'shortBreak' | 'longBreak';
+type ActiveTab = 'stopwatch' | 'timer' | 'pomodoro' | 'manual';
+
+function formatDateTimeLocal(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  return `${year}-${month}-${day}T${hours}:${minutes}`;
+}
 
 export default function TimerWidget() {
   const { activeSession, elapsedSeconds: contextElapsedSeconds } = useActiveSession();
+  const [activeTab, setActiveTab] = useState<ActiveTab>('stopwatch');
   const [mode, setMode] = useState<TimerMode>('stopwatch');
   const [isRunning, setIsRunning] = useState(false);
   const [targetSeconds, setTargetSeconds] = useState(0);
   const [startTime, setStartTime] = useState<Date | null>(null);
   const [selectedProjectId, setSelectedProjectId] = useState<string>('');
   const [description, setDescription] = useState('');
+  
+  // Manual entry form state - initialize with current datetime
+  const [manualStartTime, setManualStartTime] = useState<string>(() => formatDateTimeLocal(new Date()));
+  const [manualEndTime, setManualEndTime] = useState<string>(() => formatDateTimeLocal(new Date()));
+  const [manualProjectId, setManualProjectId] = useState<string>('');
+  const [manualDescription, setManualDescription] = useState<string>('');
+  const [manualMode, setManualMode] = useState<TimerMode>('stopwatch');
   
   // Pomodoro state
   const [pomodoroSettings, setPomodoroSettings] = useState<PomodoroSettings | null>(null);
@@ -84,7 +102,11 @@ export default function TimerWidget() {
     
     // Não reiniciar se estamos parando ou se já está rodando com o mesmo startTime
     if ((!startTime || localStartTimeStr !== sessionStartTimeStr) && !isStoppingRef.current) {
-      setMode(activeSession.mode || 'stopwatch');
+      const sessionMode = activeSession.mode || 'stopwatch';
+      setMode(sessionMode);
+      if (sessionMode !== 'manual') {
+        setActiveTab(sessionMode as ActiveTab);
+      }
       setStartTime(sessionStartTime);
       setIsRunning(true);
 
@@ -132,8 +154,12 @@ export default function TimerWidget() {
         // Restaurar sessão ativa se existir
         if (activeSession) {
           const startTime = new Date(activeSession.startTime);
+          const sessionMode = activeSession.mode;
           
-          setMode(activeSession.mode);
+          setMode(sessionMode);
+          if (sessionMode !== 'manual') {
+            setActiveTab(sessionMode as ActiveTab);
+          }
           setStartTime(startTime);
           setIsRunning(true);
           
@@ -173,17 +199,19 @@ export default function TimerWidget() {
 
   // Verificar se timer/pomodoro atingiu o alvo (usando elapsedSeconds do contexto)
   useEffect(() => {
-    if (!isRunning || !activeSession?.active) {
+    if (!isRunning || !activeSession?.active || activeTab === 'manual') {
       return;
     }
 
+    const currentMode = activeTab as TimerMode;
+
     // Auto-stop para timer e pomodoro baseado no elapsedSeconds do contexto
-    if (mode === 'timer' && seconds >= targetSeconds && targetSeconds > 0) {
+    if (currentMode === 'timer' && seconds >= targetSeconds && targetSeconds > 0) {
       handleStop();
       return;
     }
     
-    if (mode === 'pomodoro') {
+    if (currentMode === 'pomodoro') {
       const currentTarget = getPomodoroTarget();
       if (seconds >= currentTarget && currentTarget > 0) {
         handlePomodoroComplete();
@@ -191,16 +219,17 @@ export default function TimerWidget() {
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [seconds, mode, targetSeconds, isRunning, activeSession?.active]);
+  }, [seconds, activeTab, targetSeconds, isRunning, activeSession?.active]);
 
   // Atualizar sessão ativa quando descrição ou projeto mudarem durante execução
   useEffect(() => {
-    if (isRunning && startTime) {
+    if (isRunning && startTime && activeTab !== 'manual') {
       const updateActiveSession = async () => {
         try {
+          const currentMode = activeTab as TimerMode;
           const activeSessionData: CreateActiveSessionData = {
             startTime: startTime.toISOString(),
-            mode,
+            mode: currentMode,
           };
           
           if (selectedProjectId && selectedProjectId.trim() !== '') {
@@ -213,11 +242,11 @@ export default function TimerWidget() {
           const trimmedDescription = description?.trim();
           activeSessionData.description = trimmedDescription || undefined;
           
-          if (mode === 'timer' || mode === 'pomodoro') {
-            activeSessionData.targetSeconds = mode === 'pomodoro' ? getPomodoroTarget() : targetSeconds;
+          if (currentMode === 'timer' || currentMode === 'pomodoro') {
+            activeSessionData.targetSeconds = currentMode === 'pomodoro' ? getPomodoroTarget() : targetSeconds;
           }
           
-          if (mode === 'pomodoro') {
+          if (currentMode === 'pomodoro') {
             activeSessionData.pomodoroPhase = pomodoroPhase;
             activeSessionData.pomodoroCycle = pomodoroCycle;
           }
@@ -233,7 +262,7 @@ export default function TimerWidget() {
       const timeoutId = setTimeout(updateActiveSession, 500);
       return () => clearTimeout(timeoutId);
     }
-  }, [isRunning, startTime, description, selectedProjectId, mode, targetSeconds, pomodoroPhase, pomodoroCycle]);
+  }, [isRunning, startTime, description, selectedProjectId, activeTab, targetSeconds, pomodoroPhase, pomodoroCycle]);
 
   function getPomodoroTarget(): number {
     if (!pomodoroSettings) return 0;
@@ -259,7 +288,9 @@ export default function TimerWidget() {
   }
 
   async function handleStart() {
-    if (mode === 'timer' && targetSeconds === 0) {
+    const currentMode = activeTab !== 'manual' ? (activeTab as TimerMode) : mode;
+    
+    if (currentMode === 'timer' && targetSeconds === 0) {
       setMessage({ text: 'Defina um tempo para o timer', type: 'error' });
       return;
     }
@@ -268,11 +299,16 @@ export default function TimerWidget() {
     setStartTime(now);
     setIsRunning(true);
     
+    // Update mode state to match activeTab
+    if (activeTab !== 'manual') {
+      setMode(activeTab as TimerMode);
+    }
+    
     // Salvar sessão ativa no backend
     try {
       const activeSessionData: CreateActiveSessionData = {
         startTime: now.toISOString(),
-        mode,
+        mode: currentMode,
       };
       
       if (selectedProjectId && selectedProjectId.trim() !== '') {
@@ -285,11 +321,11 @@ export default function TimerWidget() {
         activeSessionData.description = description.trim();
       }
       
-      if (mode === 'timer' || mode === 'pomodoro') {
-        activeSessionData.targetSeconds = mode === 'pomodoro' ? getPomodoroTarget() : targetSeconds;
+      if (currentMode === 'timer' || currentMode === 'pomodoro') {
+        activeSessionData.targetSeconds = currentMode === 'pomodoro' ? getPomodoroTarget() : targetSeconds;
       }
       
-      if (mode === 'pomodoro') {
+      if (currentMode === 'pomodoro') {
         activeSessionData.pomodoroPhase = pomodoroPhase;
         activeSessionData.pomodoroCycle = pomodoroCycle;
       }
@@ -564,6 +600,7 @@ export default function TimerWidget() {
       return;
     }
     
+    setActiveTab(newMode);
     applyModeChange(newMode);
   }
 
@@ -591,6 +628,7 @@ export default function TimerWidget() {
       const pendingMode = confirmDialog.pendingMode;
       setConfirmDialog({ isOpen: false, pendingMode: null });
       await handleStop();
+      setActiveTab(pendingMode);
       applyModeChange(pendingMode);
     } else {
       setConfirmDialog({ isOpen: false, pendingMode: null });
@@ -618,8 +656,12 @@ export default function TimerWidget() {
       
       if (activeSession) {
         const startTime = new Date(activeSession.startTime);
+        const sessionMode = activeSession.mode;
         
-        setMode(activeSession.mode);
+        setMode(sessionMode);
+        if (sessionMode !== 'manual') {
+          setActiveTab(sessionMode as ActiveTab);
+        }
         setStartTime(startTime);
         setIsRunning(true);
         
@@ -652,12 +694,78 @@ export default function TimerWidget() {
     }
   }
 
+  async function handleManualSave() {
+    // Default to "now" if timestamps are empty
+    const now = formatDateTimeLocal(new Date());
+    const startTimeValue = manualStartTime || now;
+    const endTimeValue = manualEndTime || now;
+
+    const startDate = new Date(startTimeValue);
+    const endDate = new Date(endTimeValue);
+
+    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+      setMessage({ text: 'Datas/horas inválidas', type: 'error' });
+      return;
+    }
+
+    if (endDate < startDate) {
+      setMessage({ text: 'A data/hora de término não pode ser anterior à data/hora de início', type: 'error' });
+      return;
+    }
+
+    // Calculate duration automatically
+    const durationSeconds = Math.floor((endDate.getTime() - startDate.getTime()) / 1000);
+
+    if (durationSeconds < 0) {
+      setMessage({ text: 'A duração não pode ser negativa', type: 'error' });
+      return;
+    }
+
+    try {
+      const sessionData: CreateSessionData = {
+        startTime: startDate.toISOString(),
+        endTime: endDate.toISOString(),
+        durationSeconds,
+        mode: manualMode,
+      };
+
+      if (manualProjectId && manualProjectId.trim() !== '') {
+        sessionData.projectId = manualProjectId.trim();
+      } else {
+        sessionData.projectId = null;
+      }
+
+      const trimmedDescription = manualDescription?.trim();
+      if (trimmedDescription) {
+        sessionData.description = trimmedDescription;
+      }
+
+      await sessionsApi.create(sessionData);
+      setMessage({ text: 'Sessão salva com sucesso!', type: 'success' });
+      
+      // Reset form with current datetime
+      const resetNow = formatDateTimeLocal(new Date());
+      setManualStartTime(resetNow);
+      setManualEndTime(resetNow);
+      setManualProjectId('');
+      setManualDescription('');
+      setManualMode('stopwatch');
+    } catch (err) {
+      console.error('Erro ao salvar sessão manual:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Erro ao salvar sessão';
+      setMessage({ text: errorMessage, type: 'error' });
+    }
+  }
+
   if (loading) {
     return <div className="widget-container with-timer-space">Carregando...</div>;
   }
 
-  const displaySeconds = mode === 'timer' || mode === 'pomodoro' 
-    ? Math.max(0, (mode === 'pomodoro' ? getPomodoroTarget() : targetSeconds) - seconds)
+  // Use activeTab for timer modes, fallback to mode for manual tab
+  const currentMode = activeTab !== 'manual' ? (activeTab as TimerMode) : mode;
+  
+  const displaySeconds = currentMode === 'timer' || currentMode === 'pomodoro' 
+    ? Math.max(0, (currentMode === 'pomodoro' ? getPomodoroTarget() : targetSeconds) - seconds)
     : seconds;
 
   return (
@@ -687,33 +795,70 @@ export default function TimerWidget() {
         </button>
       </div>
       
-      {/* Mode selector */}
+      {/* Tab selector */}
       <div className="flex gap-1 mb-1" style={{ width: '100%' }}>
         <button
-          onClick={() => handleModeChange('stopwatch')}
-          className={mode === 'stopwatch' ? 'primary' : ''}
+          onClick={() => {
+            if (activeTab !== 'stopwatch' && isRunning) {
+              setConfirmDialog({ isOpen: true, pendingMode: 'stopwatch' });
+            } else {
+              setActiveTab('stopwatch');
+              if (!isRunning) {
+                applyModeChange('stopwatch');
+              }
+            }
+          }}
+          className={activeTab === 'stopwatch' ? 'primary' : ''}
           style={{ flex: 1, padding: '0.3rem 0.5rem', fontSize: '0.75rem' }}
         >
           Stopwatch
         </button>
         <button
-          onClick={() => handleModeChange('timer')}
-          className={mode === 'timer' ? 'primary' : ''}
+          onClick={() => {
+            if (activeTab !== 'timer' && isRunning) {
+              setConfirmDialog({ isOpen: true, pendingMode: 'timer' });
+            } else {
+              setActiveTab('timer');
+              if (!isRunning) {
+                applyModeChange('timer');
+              }
+            }
+          }}
+          className={activeTab === 'timer' ? 'primary' : ''}
           style={{ flex: 1, padding: '0.3rem 0.5rem', fontSize: '0.75rem' }}
         >
           Timer
         </button>
         <button
-          onClick={() => handleModeChange('pomodoro')}
-          className={mode === 'pomodoro' ? 'primary' : ''}
+          onClick={() => {
+            if (activeTab !== 'pomodoro' && isRunning) {
+              setConfirmDialog({ isOpen: true, pendingMode: 'pomodoro' });
+            } else {
+              setActiveTab('pomodoro');
+              if (!isRunning) {
+                applyModeChange('pomodoro');
+              }
+            }
+          }}
+          className={activeTab === 'pomodoro' ? 'primary' : ''}
           style={{ flex: 1, padding: '0.3rem 0.5rem', fontSize: '0.75rem' }}
         >
           Pomodoro
         </button>
+        <button
+          onClick={() => setActiveTab('manual')}
+          className={activeTab === 'manual' ? 'primary' : ''}
+          style={{ flex: 1, padding: '0.3rem 0.5rem', fontSize: '0.75rem' }}
+        >
+          Manual
+        </button>
       </div>
 
+      {activeTab !== 'manual' ? (
+        <>
+
       {/* Pomodoro info */}
-      {mode === 'pomodoro' && (
+      {activeTab === 'pomodoro' && (
         <div className="card mb-1" style={{ padding: '0.5rem' }}>
           <p style={{ fontSize: '0.8rem', marginBottom: '0.25rem' }}>
             Fase: {pomodoroPhase === 'work' ? 'Trabalho' : pomodoroPhase === 'shortBreak' ? 'Pausa Curta' : 'Pausa Longa'}
@@ -732,7 +877,7 @@ export default function TimerWidget() {
         <div style={{ fontSize: '2rem', fontWeight: 'bold', fontFamily: 'monospace', lineHeight: '1.2' }}>
           {formatTime(displaySeconds)}
         </div>
-        {mode === 'timer' && (
+        {activeTab === 'timer' && (
           <div className="mt-1">
             <input
               type="number"
@@ -791,6 +936,80 @@ export default function TimerWidget() {
           />
         </div>
       </div>
+        </>
+      ) : (
+        <>
+          {/* Manual Entry Form */}
+          <div className="card mb-1" style={{ padding: '0.5rem' }}>
+            <div className="mb-1">
+              <label style={{ fontSize: '0.8rem', display: 'block', marginBottom: '0.25rem' }}>Data/Hora de Início:</label>
+              <input
+                type="datetime-local"
+                value={manualStartTime}
+                onChange={(e) => setManualStartTime(e.target.value)}
+                style={{ width: '100%', padding: '0.3rem', fontSize: '0.8rem' }}
+              />
+            </div>
+            <div className="mb-1">
+              <label style={{ fontSize: '0.8rem', display: 'block', marginBottom: '0.25rem' }}>Data/Hora de Término:</label>
+              <input
+                type="datetime-local"
+                value={manualEndTime}
+                onChange={(e) => setManualEndTime(e.target.value)}
+                style={{ width: '100%', padding: '0.3rem', fontSize: '0.8rem' }}
+              />
+            </div>
+            <div className="mb-1">
+              <label style={{ fontSize: '0.8rem', display: 'block', marginBottom: '0.25rem' }}>Modo:</label>
+              <select
+                value={manualMode}
+                onChange={(e) => setManualMode(e.target.value as TimerMode)}
+                style={{ width: '100%', padding: '0.3rem', fontSize: '0.8rem' }}
+              >
+                <option value="stopwatch">Stopwatch</option>
+                <option value="timer">Timer</option>
+                <option value="pomodoro">Pomodoro</option>
+              </select>
+            </div>
+            <div className="mb-1">
+              <label style={{ fontSize: '0.8rem', display: 'block', marginBottom: '0.25rem' }}>Projeto:</label>
+              <select
+                value={manualProjectId}
+                onChange={(e) => setManualProjectId(e.target.value)}
+                style={{ width: '100%', padding: '0.3rem', fontSize: '0.8rem' }}
+              >
+                <option value="">Selecione...</option>
+                {projects && projects.length > 0 ? (
+                  projects.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}
+                    </option>
+                  ))
+                ) : (
+                  <option disabled>Nenhum projeto disponível</option>
+                )}
+              </select>
+            </div>
+            <div>
+              <label style={{ fontSize: '0.8rem', display: 'block', marginBottom: '0.25rem' }}>Descrição:</label>
+              <textarea
+                value={manualDescription}
+                onChange={(e) => setManualDescription(e.target.value)}
+                placeholder="O que você estava fazendo?"
+                rows={2}
+                style={{ width: '100%', padding: '0.3rem', fontSize: '0.8rem', resize: 'vertical' }}
+              />
+            </div>
+          </div>
+          <button
+            className="primary"
+            onClick={handleManualSave}
+            style={{ width: '100%', padding: '0.4rem' }}
+          >
+            Salvar Sessão
+          </button>
+        </>
+      )}
 
       <ConfirmDialog
         isOpen={confirmDialog.isOpen}
