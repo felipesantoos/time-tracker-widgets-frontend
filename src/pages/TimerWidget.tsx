@@ -104,9 +104,7 @@ export default function TimerWidget() {
     if ((!startTime || localStartTimeStr !== sessionStartTimeStr) && !isStoppingRef.current) {
       const sessionMode = activeSession.mode || 'stopwatch';
       setMode(sessionMode);
-      if (sessionMode !== 'manual') {
-        setActiveTab(sessionMode as ActiveTab);
-      }
+      setActiveTab(sessionMode as ActiveTab);
       setStartTime(sessionStartTime);
       setIsRunning(true);
 
@@ -157,9 +155,7 @@ export default function TimerWidget() {
           const sessionMode = activeSession.mode;
           
           setMode(sessionMode);
-          if (sessionMode !== 'manual') {
-            setActiveTab(sessionMode as ActiveTab);
-          }
+          setActiveTab(sessionMode as ActiveTab);
           setStartTime(startTime);
           setIsRunning(true);
           
@@ -594,16 +590,6 @@ export default function TimerWidget() {
     }
   }
 
-  function handleModeChange(newMode: TimerMode) {
-    if (isRunning) {
-      setConfirmDialog({ isOpen: true, pendingMode: newMode });
-      return;
-    }
-    
-    setActiveTab(newMode);
-    applyModeChange(newMode);
-  }
-
   async function applyModeChange(newMode: TimerMode) {
     // Se houver sessão ativa, removê-la ao mudar de modo
     try {
@@ -659,9 +645,7 @@ export default function TimerWidget() {
         const sessionMode = activeSession.mode;
         
         setMode(sessionMode);
-        if (sessionMode !== 'manual') {
-          setActiveTab(sessionMode as ActiveTab);
-        }
+        setActiveTab(sessionMode as ActiveTab);
         setStartTime(startTime);
         setIsRunning(true);
         
