@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Toast from '../components/Toast';
 import '../App.css';
 
@@ -14,9 +14,48 @@ const WIDGETS = [
   { path: '/settings', name: 'Configurações', icon: '⚙️' },
 ];
 
+function useGridColumns(containerRef: React.RefObject<HTMLDivElement | null>, minItemWidth: number = 200, gap: number = 8) {
+  const [columns, setColumns] = useState(1);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const calculateColumns = () => {
+      const containerWidth = container.offsetWidth;
+      // Calcular quantas colunas cabem considerando gap entre itens
+      // gap * (numColunas - 1) = total de gap
+      // numColunas * minItemWidth + gap * (numColunas - 1) <= containerWidth
+      // numColunas * (minItemWidth + gap) - gap <= containerWidth
+      // numColunas <= (containerWidth + gap) / (minItemWidth + gap)
+      const calculatedColumns = Math.floor((containerWidth + gap) / (minItemWidth + gap));
+      const finalColumns = Math.max(1, calculatedColumns); // Mínimo 1, sem máximo fixo
+      setColumns(finalColumns);
+    };
+
+    // Calcular inicialmente
+    calculateColumns();
+
+    // Usar ResizeObserver para detectar mudanças de tamanho
+    const resizeObserver = new ResizeObserver(() => {
+      calculateColumns();
+    });
+
+    resizeObserver.observe(container);
+
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, [containerRef, minItemWidth, gap]);
+
+  return columns;
+}
+
 export default function HomePage() {
   const [token, setToken] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
+  const gridContainerRef = useRef<HTMLDivElement>(null);
+  const columns = useGridColumns(gridContainerRef, 200, 8); // minItemWidth: 200px, gap: 8px (0.5rem)
 
   useEffect(() => {
     // Obter token da query string ou localStorage
@@ -158,7 +197,7 @@ export default function HomePage() {
         </div>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.5rem' }}>
+      <div ref={gridContainerRef} style={{ display: 'grid', gridTemplateColumns: `repeat(${columns}, 1fr)`, gap: '0.5rem' }}>
         {WIDGETS.map((widget) => (
           <div key={widget.path} className="card" style={{ padding: '0.5rem' }}>
             <div className="flex-between gap-1" style={{ alignItems: 'center' }}>
