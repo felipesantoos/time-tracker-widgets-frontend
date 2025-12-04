@@ -9,6 +9,7 @@ import ReportsWidget from './pages/ReportsWidget';
 import ColumnChartWidget from './pages/ColumnChartWidget';
 import RowChartWidget from './pages/RowChartWidget';
 import PieChartWidget from './pages/PieChartWidget';
+import AgendaWidget from './pages/AgendaWidget';
 import SettingsWidget from './pages/SettingsWidget';
 import HomePage from './pages/HomePage';
 import './App.css';
@@ -95,6 +96,14 @@ function App() {
               element={
                 <AuthGuard>
                   <PieChartWidget />
+                </AuthGuard>
+              }
+            />
+            <Route
+              path="/agenda"
+              element={
+                <AuthGuard>
+                  <AgendaWidget />
                 </AuthGuard>
               }
             />
